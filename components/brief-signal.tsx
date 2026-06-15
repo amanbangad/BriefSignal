@@ -96,15 +96,15 @@ const PLATFORMS = ["Meta", "TikTok", "YouTube Shorts", "LinkedIn", "Pinterest"] 
 const inputCls =
   "rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
 
-const BLOCKED_DOMAINS: Array<{ domain: string; what: string; why: string }> = [
-  { domain: "nytimes.com", what: "General news & culture", why: "Paywalled — Exa returns 403" },
-  { domain: "theatlantic.com", what: "Long-form culture & ideas", why: "Paywalled — Exa returns 403" },
-  { domain: "reddit.com", what: "Community & consumer sentiment", why: "Blocked by Exa plan — would be valuable for brand chatter" },
-  { domain: "businessinsider.com", what: "Business & marketing news", why: "Paywalled — Exa returns 403" },
-  { domain: "forbes.com", what: "Business & brand coverage", why: "Paywalled — Exa returns 403" },
-  { domain: "creators.instagram.com", what: "Weekly Instagram Reels trend reports", why: "Entire domain blocked by Exa — the official trend report URL pattern (trend-report-MMDDYY) exists but is inaccessible. about.fb.com is used as a proxy instead." },
-  { domain: "about.instagram.com", what: "Instagram product & feature news", why: "Blocked by Exa plan" },
-  { domain: "business.instagram.com", what: "Instagram advertiser guidance", why: "Blocked by Exa plan" },
+const BLOCKED_DOMAINS: Array<{ domain: string; what: string; why: string; errorCode: "SOURCE_NOT_AVAILABLE" | "ROBOTS_FILTER_FAILED" }> = [
+  { domain: "nytimes.com", what: "General news & culture", why: "Paywalled — content requires login", errorCode: "SOURCE_NOT_AVAILABLE" },
+  { domain: "theatlantic.com", what: "Long-form culture & ideas", why: "Paywalled — content requires login", errorCode: "SOURCE_NOT_AVAILABLE" },
+  { domain: "businessinsider.com", what: "Business & marketing news", why: "Paywalled — content requires login", errorCode: "SOURCE_NOT_AVAILABLE" },
+  { domain: "forbes.com", what: "Business & brand coverage", why: "Paywalled — content requires login", errorCode: "SOURCE_NOT_AVAILABLE" },
+  { domain: "reddit.com", what: "Community & consumer sentiment", why: "Disallows crawlers in robots.txt — would be the best brand chatter source if accessible", errorCode: "ROBOTS_FILTER_FAILED" },
+  { domain: "creators.instagram.com", what: "Weekly Instagram Reels trend reports (trend-report-MMDDYY pattern)", why: "Disallows crawlers in robots.txt — about.fb.com used as proxy", errorCode: "ROBOTS_FILTER_FAILED" },
+  { domain: "about.instagram.com", what: "Instagram product & feature news", why: "Disallows crawlers in robots.txt", errorCode: "ROBOTS_FILTER_FAILED" },
+  { domain: "business.instagram.com", what: "Instagram advertiser guidance", why: "Disallows crawlers in robots.txt", errorCode: "ROBOTS_FILTER_FAILED" },
 ]
 
 const WORKING_DOMAINS = [
@@ -274,11 +274,15 @@ function DemoNotes() {
       {/* Blocked domains */}
       <section className="rounded-xl border border-border bg-card p-5 md:p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
-          Blocked domains (Exa free plan)
+          Inaccessible domains
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          These domains have been tested and confirmed inaccessible on the current Exa plan.
-          Including them in a search causes the entire request to fail, so they are excluded from
+          These domains return 403 regardless of Exa plan. There are two causes — Exa documents
+          both as distinct error codes. <span className="text-foreground/70 font-medium">Paywalled sites</span> return{" "}
+          <span className="font-mono text-xs text-foreground/60">SOURCE_NOT_AVAILABLE</span>; sites
+          that disallow crawlers in their <span className="font-mono text-xs text-foreground/60">robots.txt</span>{" "}
+          return <span className="font-mono text-xs text-foreground/60">ROBOTS_FILTER_FAILED</span>.
+          Including either in a search causes the entire request to fail, so they are excluded from
           all include lists.
         </p>
         <div className="mt-4 overflow-hidden rounded-lg border border-border">
@@ -295,7 +299,12 @@ function DemoNotes() {
             >
               <span className="font-mono text-xs text-hot">{d.domain}</span>
               <span className="text-xs leading-relaxed text-card-foreground/80">{d.what}</span>
-              <span className="text-xs leading-relaxed text-muted-foreground">{d.why}</span>
+              <div className="flex flex-col gap-1.5">
+                <span className="w-fit rounded border border-border bg-input px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                  {d.errorCode}
+                </span>
+                <span className="text-xs leading-relaxed text-muted-foreground">{d.why}</span>
+              </div>
             </div>
           ))}
         </div>
