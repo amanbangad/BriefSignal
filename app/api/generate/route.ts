@@ -180,8 +180,8 @@ Category: ${category}
 Target audience: ${aud}
 Platform: ${platform}
 Objective: ${objective}
-${mkt ? `Market: ${mkt}` : ""}
-${comp ? `Competitor: ${comp}` : ""}
+  Market: ${mkt || "Global"}
+  ${comp ? `Competitor: ${comp}` : ""}
 
 ${context ? `Live web signals from this month:\n\n${context}` : "Generate three timely brief cards for this brand and category."}`
 
