@@ -6,6 +6,11 @@ export interface BriefCard {
   why_now: string
   creative_angle: string
   hook: string
+  audience_tension: string
+  ad_formats: string[]
+  do_dont: { do: string; dont: string }
+  example_brands: Array<{ name: string; approach: string }>
+  copy_directions: string[]
   source: string
   source_url: string
   signal: string

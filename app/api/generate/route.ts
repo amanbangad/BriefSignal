@@ -5,6 +5,7 @@ import {
   searchCategoryTrends,
   searchBrandChatter,
   searchCompetitorSignals,
+  searchSocialSignals,
   mergeSignals,
   hasExaKey,
   type ExaSignal,
@@ -19,9 +20,22 @@ const cardSchema = z.object({
       z.object({
         trend_name: z.string().describe("3-5 word name for the trend"),
         heat: z.enum(["hot", "rising", "cooling"]).describe("hot = published ≤7 days ago with active momentum language; rising = published ≤30 days ago or building momentum language; cooling = published >30 days ago or plateau/decline language"),
-        why_now: z.string().describe("2 sentences grounded in the search findings"),
-        creative_angle: z.string().describe("A specific ad angle native to the given platform"),
-        hook: z.string().describe("An ad headline, max 15 words"),
+        why_now: z.string().describe("Exactly 2 sentences. First sentence must cite the article publication date and what it reported. Second sentence states the urgency for the creative team."),
+        creative_angle: z.string().describe("A specific ad format native to the given platform — not a generic idea."),
+        hook: z.string().describe("A single finished ad headline, max 15 words. Must feel like final copy, not a brief."),
+        audience_tension: z.string().describe("1-2 sentences describing the specific consumer tension, unmet need, or cultural anxiety this trend is responding to."),
+        ad_formats: z.array(z.string()).min(2).max(3).describe("2-3 specific ad format recommendations for the chosen platform, e.g. 'TikTok Spark Ad, 15s sound-on' or 'Meta Reels, UGC-style, 9:16'."),
+        do_dont: z.object({
+          do: z.string().describe("One concrete creative direction to pursue for this signal."),
+          dont: z.string().describe("One creative mistake to avoid that would kill the signal."),
+        }),
+        example_brands: z.array(
+          z.object({
+            name: z.string().describe("Brand name"),
+            approach: z.string().describe("1 sentence on how this brand is executing on this trend."),
+          })
+        ).min(1).max(2).describe("1-2 real brands already executing on this trend. Must be real, verifiable examples."),
+        copy_directions: z.array(z.string()).min(2).max(3).describe("2-3 short copy angles beyond the hook — different tones or framings of the same signal."),
         source: z.string().describe("The publication or site name the signal came from"),
         source_url: z.string().describe("The full URL of the source article. Must be a real URL from the search results context. If no URL is available, use an empty string."),
         signal: z.string().describe("1 sentence describing what was found"),
@@ -97,35 +111,28 @@ export async function POST(req: Request) {
         controller.enqueue(sseEvent({ type: "category", value: category }))
 
         if (hasExaKey()) {
-          // Phase 2: category trends (platform + market aware)
+          // Phase 2: run category trends + brand chatter + social proxy in parallel.
           controller.enqueue(
             sseEvent({
               type: "step",
               phase: 2,
-              label: `Scanning ${platform} trends in ${category}${mkt ? ` · ${mkt}` : ""}…`,
+              label: `Scanning ${platform} trends, brand chatter & social signals…`,
             }),
           )
-          const trends = await searchCategoryTrends(category, platform, mkt)
-
-          // Phase 3: brand chatter
-          controller.enqueue(
-            sseEvent({
-              type: "step",
-              phase: 3,
-              label: `Scanning brand conversations for ${brand}…`,
-              count: trends.length,
-            }),
-          )
-          const brandChatter = await searchBrandChatter(brand, category, platform, mkt)
-          signals = mergeSignals(trends, brandChatter)
+          const [trends, brandChatter, socialSignals] = await Promise.all([
+            searchCategoryTrends(category, platform, mkt),
+            searchBrandChatter(brand, category, platform, mkt),
+            searchSocialSignals(category, platform, mkt),
+          ])
+          signals = mergeSignals(mergeSignals(trends, brandChatter), socialSignals)
           liveSearch = signals.length > 0
 
-          // Phase 4 (conditional): competitor signals
+          // Phase 3: competitor signals (conditional)
           if (comp) {
             controller.enqueue(
               sseEvent({
                 type: "step",
-                phase: 4,
+                phase: 3,
                 label: `Scanning ${comp} creative signals…`,
                 count: signals.length,
               }),
@@ -134,8 +141,8 @@ export async function POST(req: Request) {
             signals = mergeSignals(signals, competitorSignals)
           }
 
-          // Final synthesis phase (phase 4 or 5 depending on competitor)
-          const synthesisPhase = comp ? 5 : 4
+          // Final synthesis phase (3 or 4 depending on competitor)
+          const synthesisPhase = comp ? 4 : 3
           controller.enqueue(
             sseEvent({
               type: "step",
@@ -194,13 +201,18 @@ Heat assignment rules (apply these in order — this is the most important instr
 
 Output rules:
 - Return exactly 3 brief cards.
-- creative_angle must be a concrete, platform-native format — not a generic idea. \
-  For Meta: specify Reels, Stories carousel, UGC-style, or static with bold text overlay. \
-  For TikTok: specify trending sound, duet, POV, or text-overlay hook. \
-  For YouTube: specify 15s bumper, 60s story format, or thumbnail-driven curiosity gap. \
-  For LinkedIn: specify thought-leadership post, document carousel, or event coverage. \
-  For Pinterest: specify idea pin, visual search optimised static, or seasonal board.
-- hook is a single ad headline, max 15 words. Write it like a copywriter, not a strategist — make it feel finished, not briefed.
+- creative_angle: concrete platform-native format only. \
+  Meta → Reels, Stories carousel, UGC-style, or static with bold text overlay. \
+  TikTok → trending sound, duet, POV, or text-overlay hook. \
+  YouTube → 15s bumper, 60s story, or thumbnail curiosity gap. \
+  LinkedIn → thought-leadership post, document carousel, or event coverage. \
+  Pinterest → idea pin, visual search-optimised static, or seasonal board.
+- hook: single finished ad headline, max 15 words. Copywriter voice, not strategist voice.
+- audience_tension: name the specific unmet need or cultural anxiety driving this trend. Be precise.
+- ad_formats: 2-3 specific placements with aspect ratio and length where relevant (e.g. "Meta Reels 9:16, 15s, sound-on").
+- do_dont: do = a concrete creative direction that will land. dont = the specific mistake that would make this feel generic or tone-deaf.
+- example_brands: 1-2 real brands with a one-sentence description of their execution. Must be verifiable — do not invent examples.
+- copy_directions: 2-3 alternative headlines or copy angles for the same signal in different tones (e.g. bold/provocative, warm/relatable, witty/ironic).
 - Vague why_now observations ("consumers want authenticity") are not acceptable.
 - Objective is ${objective}: ${objectiveGuidance}
 ${comp ? `- One card must contain a direct competitive angle against ${comp}. Name the tension clearly.` : ""}`

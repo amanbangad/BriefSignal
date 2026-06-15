@@ -3,6 +3,17 @@
 import { useState } from "react"
 import type { BriefCard, Heat } from "@/lib/types"
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="h-3.5 w-0.5 rounded-full bg-primary/50" />
+      <span className="text-xs font-semibold uppercase tracking-widest text-foreground/60">
+        {children}
+      </span>
+    </div>
+  )
+}
+
 interface Step {
   label: string
   status: "pending" | "active" | "done"
@@ -11,8 +22,7 @@ interface Step {
 
 const DEFAULT_STEPS: Step[] = [
   { label: "Identifying category…", status: "pending" },
-  { label: "Scanning for platform trends…", status: "pending" },
-  { label: "Scanning brand conversations…", status: "pending" },
+  { label: "Scanning trends, chatter & social signals…", status: "pending" },
   { label: "Synthesizing brief cards…", status: "pending" },
 ]
 
@@ -96,6 +106,7 @@ const BLOCKED_DOMAINS = [
 ]
 
 const WORKING_DOMAINS = [
+  // Trade press & editorial
   "adweek.com",
   "digiday.com",
   "thedrum.com",
@@ -111,11 +122,24 @@ const WORKING_DOMAINS = [
   "emarketer.com",
   "creativebrief.com",
   "morningbrew.com",
+  // Brand newsrooms & PR
   "prnewswire.com",
   "businesswire.com",
   "techcrunch.com",
   "substack.com",
   "mediapost.com",
+  // Social proxy domains (platform newsrooms + creator press)
+  "newsroom.tiktok.com",
+  "blog.youtube.com",
+  "later.com",
+  "tubefilter.com",
+  "sproutsocial.com",
+  "socialmediaexaminer.com",
+  "hootsuite.com",
+  "buffer.com",
+  "creatoriq.com",
+  "influencermarketinghub.com",
+  "socialinsider.io",
 ]
 
 function DemoNotes() {
@@ -152,6 +176,16 @@ function DemoNotes() {
               within 7 days with active language. Rising = within 30 days or building language.
               Cooling = older than 30 days or plateau/decline language. The first sentence of
               why_now is required to cite the article date and what was reported.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Social signal proxy</span> — a third
+              parallel search targets platform newsrooms (newsroom.tiktok.com, blog.youtube.com),
+              creator economy press (tubefilter.com, creatoriq.com), and social analytics blogs
+              (sproutsocial.com, later.com) to surface what is actually trending on the selected
+              platform. Runs in parallel with the other two searches, adding no extra latency.
             </span>
           </li>
           <li className="flex gap-2">
@@ -198,9 +232,12 @@ function DemoNotes() {
           <li className="flex gap-2">
             <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
             <span>
-              <span className="font-medium text-foreground">No social media data</span> — TikTok,
-              Instagram, X, and YouTube are not indexed by Exa. Platform selection shapes query
-              framing and synthesis format, but does not pull actual in-platform content.
+              <span className="font-medium text-foreground">No direct social platform indexing</span>{" "}
+              — TikTok, Instagram, X, and YouTube are not crawlable by Exa. Social signals are
+              proxied via platform newsrooms (newsroom.tiktok.com, blog.youtube.com), creator
+              economy press (tubefilter.com, creatoriq.com), and social analytics blogs
+              (sproutsocial.com, later.com, hootsuite.com). These cover what is trending on each
+              platform but with a reporting lag of 1–7 days.
             </span>
           </li>
           <li className="flex gap-2">
@@ -597,80 +634,167 @@ export function BriefSignal() {
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-4 flex flex-col gap-6">
             {cards.map((card, i) => {
               const heat = HEAT_CONFIG[card.heat] ?? HEAT_CONFIG.rising
               return (
                 <article
                   key={i}
-                  className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5"
+                  className="rounded-xl border border-border bg-card overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${heat.className}`}
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-full ${heat.dot}`} />
-                      {heat.label}
-                    </span>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-
-                  <h3 className="text-balance text-lg font-semibold leading-snug">
-                    {card.trend_name}
-                  </h3>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Why now
-                    </span>
-                    <p className="text-sm leading-relaxed text-card-foreground/90">{card.why_now}</p>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Creative angle
-                    </span>
-                    <p className="text-sm leading-relaxed text-card-foreground/90">
-                      {card.creative_angle}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-border bg-input p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Ad hook
+                  {/* Card header */}
+                  <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {String(i + 1).padStart(2, "0")}
                       </span>
-                      <button
-                        onClick={() => copyHook(card.hook, i)}
-                        className="text-xs font-medium text-primary transition hover:opacity-80"
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${heat.className}`}
                       >
-                        {copied === i ? "Copied" : "Copy"}
-                      </button>
+                        <span className={`h-1.5 w-1.5 rounded-full ${heat.dot}`} />
+                        {heat.label}
+                      </span>
+                      <h3 className="text-balance text-base font-semibold leading-snug">
+                        {card.trend_name}
+                      </h3>
                     </div>
-                    <p className="mt-1.5 text-sm font-medium leading-relaxed text-foreground">
-                      {`\u201c${card.hook}\u201d`}
-                    </p>
-                  </div>
-
-                  <div className="mt-auto flex flex-col gap-1">
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      <span className="font-medium text-foreground/70">Signal</span> {"\u00b7"}{" "}
+                    <div className="flex items-center gap-2 shrink-0">
                       {card.source_url ? (
                         <a
                           href={card.source_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline underline-offset-2 hover:text-foreground transition-colors"
+                          className="font-mono text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
                         >
                           {card.source}
                         </a>
                       ) : (
-                        card.source
-                      )}{" "}
-                      {"\u2014"} {card.signal}
-                    </p>
+                        <span className="font-mono text-xs text-muted-foreground">{card.source}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Two-column body */}
+                  <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
+
+                    {/* Left column */}
+                    <div className="flex flex-col divide-y divide-border">
+
+                      {/* Why now */}
+                      <div className="px-5 py-4">
+                        <SectionLabel>Why now</SectionLabel>
+                        <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
+                          {card.why_now}
+                        </p>
+                      </div>
+
+                      {/* Audience tension */}
+                      <div className="px-5 py-4">
+                        <SectionLabel>Audience tension</SectionLabel>
+                        <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
+                          {card.audience_tension}
+                        </p>
+                      </div>
+
+                      {/* Do / Don't */}
+                      <div className="px-5 py-4">
+                        <SectionLabel>Do / Don&apos;t</SectionLabel>
+                        <div className="mt-3 flex flex-col gap-2">
+                          <div className="flex items-start gap-3 rounded-lg border border-rising/20 bg-rising/5 px-3.5 py-3">
+                            <svg className="mt-0.5 h-4 w-4 shrink-0 text-rising" viewBox="0 0 16 16" fill="none">
+                              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                              <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="text-sm leading-relaxed text-card-foreground/90">{card.do_dont.do}</span>
+                          </div>
+                          <div className="flex items-start gap-3 rounded-lg border border-hot/20 bg-hot/5 px-3.5 py-3">
+                            <svg className="mt-0.5 h-4 w-4 shrink-0 text-hot" viewBox="0 0 16 16" fill="none">
+                              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                              <path d="M5.5 10.5l5-5M10.5 10.5l-5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                            <span className="text-sm leading-relaxed text-card-foreground/90">{card.do_dont.dont}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Example brands */}
+                      <div className="px-5 py-4">
+                        <SectionLabel>Brands doing it</SectionLabel>
+                        <div className="mt-2 flex flex-col gap-2">
+                          {card.example_brands?.map((b, j) => (
+                            <div key={j} className="text-sm leading-relaxed">
+                              <span className="font-medium text-foreground">{b.name}</span>
+                              <span className="text-card-foreground/70"> — {b.approach}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right column */}
+                    <div className="flex flex-col divide-y divide-border">
+
+                      {/* Ad hook */}
+                      <div className="px-5 py-4">
+                        <div className="flex items-center justify-between">
+                          <SectionLabel>Ad hook</SectionLabel>
+                          <button
+                            onClick={() => copyHook(card.hook, i)}
+                            className="text-xs font-medium text-primary transition hover:opacity-80"
+                          >
+                            {copied === i ? "Copied" : "Copy"}
+                          </button>
+                        </div>
+                        <p className="mt-2 text-base font-semibold leading-snug text-foreground">
+                          {`\u201c${card.hook}\u201d`}
+                        </p>
+                      </div>
+
+                      {/* Copy directions */}
+                      <div className="px-5 py-4">
+                        <SectionLabel>Copy directions</SectionLabel>
+                        <ul className="mt-2 flex flex-col gap-2">
+                          {card.copy_directions?.map((dir, j) => (
+                            <li key={j} className="flex gap-2 text-sm leading-relaxed text-card-foreground/90">
+                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
+                              {dir}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Creative angle */}
+                      <div className="px-5 py-4">
+                        <SectionLabel>Creative angle</SectionLabel>
+                        <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
+                          {card.creative_angle}
+                        </p>
+                      </div>
+
+                      {/* Ad formats */}
+                      <div className="px-5 py-4">
+                        <SectionLabel>Ad formats</SectionLabel>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {card.ad_formats?.map((fmt, j) => (
+                            <span
+                              key={j}
+                              className="rounded-md border border-border bg-input px-2.5 py-1 font-mono text-xs text-foreground/80"
+                            >
+                              {fmt}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Signal */}
+                      <div className="px-5 py-4">
+                        <SectionLabel>Signal</SectionLabel>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          {card.signal}
+                        </p>
+                      </div>
+
+                    </div>
                   </div>
                 </article>
               )

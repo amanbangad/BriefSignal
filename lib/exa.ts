@@ -78,6 +78,25 @@ const NOISE_EXCLUDE_DOMAINS = [
   "quora.com",
 ]
 
+// Social proxy domains: platform newsrooms, creator economy press, and social
+// analytics blogs that publish weekly trend roundups. These are the closest
+// open-web proxy for what is actually trending on TikTok, Instagram, YouTube, and X
+// since Exa cannot index those platforms directly.
+// creators.instagram.com is blocked on this Exa plan.
+const SOCIAL_PROXY_DOMAINS = [
+  "newsroom.tiktok.com",
+  "blog.youtube.com",
+  "later.com",
+  "tubefilter.com",
+  "sproutsocial.com",
+  "socialmediaexaminer.com",
+  "hootsuite.com",
+  "buffer.com",
+  "creatoriq.com",
+  "influencermarketinghub.com",
+  "socialinsider.io",
+]
+
 // Competitor intelligence: campaign reporting and brand PR outlets.
 const COMPETITOR_INCLUDE_DOMAINS = [
   "adweek.com",
@@ -225,6 +244,38 @@ export async function searchCompetitorSignals(
     highlightQuery:
       "campaign creative angle, ad strategy, messaging approach, or audience targeting insight",
     includeDomains: COMPETITOR_INCLUDE_DOMAINS,
+    excludeDomains: NOISE_EXCLUDE_DOMAINS,
+  })
+}
+
+// Build a platform-aware query targeting the social proxy domains.
+function buildSocialProxyQuery(category: string, platform: string, market?: string): string {
+  const marketStr = market ? ` ${market}` : ""
+  // Map platform names to the vocabulary used in trend roundup articles.
+  const platformKeyword: Record<string, string> = {
+    TikTok: "TikTok trending",
+    "YouTube Shorts": "YouTube Shorts creators",
+    Meta: "Instagram Reels trending",
+    LinkedIn: "LinkedIn content trends",
+    Pinterest: "Pinterest trending",
+  }
+  const kw = platformKeyword[platform] ?? `${platform} trending`
+  return `${kw} ${category.toLowerCase()} content creator${marketStr} this week`
+}
+
+export async function searchSocialSignals(
+  category: string,
+  platform: string,
+  market?: string,
+): Promise<ExaSignal[]> {
+  return exaSearch({
+    query: buildSocialProxyQuery(category, platform, market),
+    numResults: 5,
+    // Social trend roundups appear quickly — 14 days keeps signals fresh.
+    startPublishedDate: daysAgoISO(14),
+    highlightQuery:
+      "trending content format, viral creator pattern, or platform-native behavior relevant to brand advertisers",
+    includeDomains: SOCIAL_PROXY_DOMAINS,
     excludeDomains: NOISE_EXCLUDE_DOMAINS,
   })
 }
