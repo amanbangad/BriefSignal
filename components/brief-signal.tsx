@@ -292,7 +292,7 @@ export function BriefSignal() {
       )}
 
       <footer className="mt-12 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-xs text-muted-foreground">
-        <span>BriefSignal {"\u00b7"} FDE take-home assignment</span>
+        <span>BriefSignal</span>
         <span>Exa real-time web search {"\u00b7"} Claude synthesis</span>
       </footer>
     </div>
