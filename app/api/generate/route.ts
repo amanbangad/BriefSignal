@@ -35,7 +35,7 @@ const cardSchema = z.object({
             name: z.string().describe("Brand name"),
             approach: z.string().describe("1 sentence on how this brand is executing on this trend."),
           })
-        ).min(1).max(2).describe("1-2 real brands already executing on this trend. Must be real, verifiable examples."),
+        ).min(0).max(2).describe("0-2 real brands already executing on this trend. Only include verifiable examples — return an empty array rather than guessing."),
         copy_directions: z.array(z.string()).min(2).max(3).describe("2-3 short copy angles beyond the hook — different tones or framings of the same signal."),
         source: z.string().describe("The publication or site name the signal came from"),
         source_url: z.string().describe("The full URL of the source article. Must be a real URL from the search results context. If no URL is available, use an empty string."),
@@ -198,7 +198,7 @@ Output rules:
 - audience_tension: name the specific unmet need or cultural anxiety driving this trend. Be precise.
 - ad_formats: 2-3 specific placements with aspect ratio and length where relevant (e.g. "Meta Reels 9:16, 15s, sound-on").
 - do_dont: do = a concrete creative direction that will land. dont = the specific mistake that would make this feel generic or tone-deaf.
-- example_brands: 1-2 real brands with a one-sentence description of their execution. Must be verifiable — do not invent examples.
+- example_brands: 0-2 real brands with a one-sentence description of their execution. Must be verifiable — return an empty array if you are not certain. Never invent or guess brand examples.
 - copy_directions: 2-3 alternative headlines or copy angles for the same signal in different tones (e.g. bold/provocative, warm/relatable, witty/ironic).
 - Vague why_now observations ("consumers want authenticity") are not acceptable.
 ${comp ? `- One card must contain a direct competitive angle against ${comp}. Name the tension clearly.` : ""}

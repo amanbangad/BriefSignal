@@ -369,6 +369,10 @@ export function BriefSignal() {
     setResultMeta(null)
     setSteps(DEFAULT_STEPS)
 
+    // Bug 1 fix: track inferred category in a local variable so the done
+    // handler can read the latest value without depending on stale React state.
+    let localCategory = ""
+
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -399,15 +403,17 @@ export function BriefSignal() {
           const payload = JSON.parse(line.slice(6))
 
           if (payload.type === "category") {
+            localCategory = payload.value
             setInferredCategory(payload.value)
           } else if (payload.type === "step") {
             const phase: number = payload.phase
             setSteps((prev) => {
-              // Dynamically append a 5th step if the competitor phase arrives
-              const extended =
-                phase === 5 && prev.length === 4
-                  ? [...prev, { label: "", status: "pending" as const }]
-                  : prev
+              // Bug 2 fix: extend whenever a phase arrives beyond the current
+              // step count — works for both competitor (phase 3→4) and future
+              // changes, not just the hardcoded phase === 5 case.
+              const extended = phase > prev.length
+                ? [...prev, { label: "", status: "pending" as const }]
+                : prev
               return extended.map((s, i) => {
                 if (i === phase - 1) return { ...s, label: payload.label, status: "active" }
                 if (i === phase - 2) return { ...s, status: "done", count: payload.count }
@@ -418,7 +424,7 @@ export function BriefSignal() {
             setSteps((prev) => prev.map((s) => ({ ...s, status: "done" })))
             setCards(payload.cards)
             setResultMeta({
-              inferredCategory: inferredCategory ?? "",
+              inferredCategory: localCategory,
               platform: payload.platform,
               liveSearch: payload.liveSearch,
             })
@@ -699,18 +705,20 @@ export function BriefSignal() {
                         </div>
                       </div>
 
-                      {/* Example brands */}
-                      <div className="px-5 py-4">
-                        <SectionLabel>Brands doing it</SectionLabel>
-                        <div className="mt-2 flex flex-col gap-2">
-                          {card.example_brands?.map((b, j) => (
-                            <div key={j} className="text-sm leading-relaxed">
-                              <span className="font-medium text-foreground">{b.name}</span>
-                              <span className="text-card-foreground/70"> — {b.approach}</span>
-                            </div>
-                          ))}
+                      {/* Example brands — only rendered when the model returned verifiable examples */}
+                      {card.example_brands && card.example_brands.length > 0 && (
+                        <div className="px-5 py-4">
+                          <SectionLabel>Brands doing it</SectionLabel>
+                          <div className="mt-2 flex flex-col gap-2">
+                            {card.example_brands.map((b, j) => (
+                              <div key={j} className="text-sm leading-relaxed">
+                                <span className="font-medium text-foreground">{b.name}</span>
+                                <span className="text-card-foreground/70"> — {b.approach}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Right column */}
