@@ -54,19 +54,17 @@ const TREND_INCLUDE_DOMAINS = [
   "morningbrew.com",
 ]
 
-// Brand chatter: brand newsrooms, trade press, and creator-adjacent media.
+// Brand chatter: third-party sources that reflect external audience perception.
+// Deliberately excludes trade press (adweek, thedrum, marketingweek) because they
+// primarily publish brand-authored campaign coverage, not consumer reactions.
 // reddit.com, businessinsider.com, and forbes.com are blocked on this Exa plan.
 const BRAND_CHATTER_INCLUDE_DOMAINS = [
-  "prnewswire.com",
-  "businesswire.com",
-  "techcrunch.com",
-  "glossy.co",
-  "digiday.com",
-  "adweek.com",
-  "substack.com",
-  "morningbrew.com",
-  "thedrum.com",
-  "marketingweek.com",
+  "prnewswire.com",   // third-party analyst and industry reaction
+  "businesswire.com", // third-party research and market commentary
+  "techcrunch.com",   // product/market reception from a tech audience lens
+  "glossy.co",        // consumer fashion/beauty community perspective
+  "substack.com",     // independent analyst and consumer commentary
+  "morningbrew.com",  // consumer-facing business narrative
 ]
 
 // Low-signal domains across all search types.
@@ -189,8 +187,17 @@ function buildTrendsQuery(category: string, platform?: string, market?: string):
 function buildChatterQuery(brand: string, category: string, platform?: string, market?: string): string {
   const platformStr = platform && platform !== "Meta" ? ` ${platform}` : ""
   const marketStr = market ? ` ${market}` : ""
-  // Reddit + brand newsrooms are the signal sources the positioning doc calls out explicitly.
-  return `${brand} ${category.toLowerCase()} consumer reaction Reddit discussion${platformStr}${marketStr}`
+  // Frame around external audience perception — NOT brand campaigns or self-published content.
+  // "customers think" / "audience reaction" / "consumer sentiment" biases neural search
+  // toward third-party commentary rather than the brand's own press releases.
+  return `what consumers and audiences think about ${brand} ${category.toLowerCase()}${platformStr}${marketStr} perception criticism praise`
+}
+
+/** Derive likely owned/PR domains to exclude from brand chatter so the brand's
+ *  own content doesn't dominate results. e.g. "Nike" → ["nike.com", "news.nike.com"] */
+function brandOwnedDomains(brand: string): string[] {
+  const slug = brand.toLowerCase().replace(/[^a-z0-9]/g, "")
+  return [`${slug}.com`, `news.${slug}.com`, `press.${slug}.com`, `newsroom.${slug}.com`]
 }
 
 export async function searchCategoryTrends(
@@ -220,14 +227,14 @@ export async function searchBrandChatter(
   return exaSearch({
     query: buildChatterQuery(brand, category, platform, market),
     numResults: 6,
-    // 60 days captures recent campaigns and community reactions.
+    // 60 days captures recent community reactions and market commentary.
     startPublishedDate: daysAgoISO(60),
     highlightQuery:
-      "consumer sentiment, audience reaction, brand perception, or community discussion a strategist would find relevant",
-    // Brand newsrooms (PR wire) and Reddit are the open-web sources that
-    // social listening tools miss — include them explicitly here.
+      "consumer sentiment, audience perception, public reaction, criticism, or external commentary about the brand — NOT the brand's own campaign announcements",
     includeDomains: BRAND_CHATTER_INCLUDE_DOMAINS,
-    excludeDomains: NOISE_EXCLUDE_DOMAINS,
+    // Exclude noise + the brand's own web properties so self-published
+    // campaign content doesn't surface as "consumer chatter".
+    excludeDomains: [...NOISE_EXCLUDE_DOMAINS, ...brandOwnedDomains(brand)],
   })
 }
 
