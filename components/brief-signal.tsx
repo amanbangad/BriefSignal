@@ -441,10 +441,24 @@ export function BriefSignal() {
                     </p>
                   </div>
 
-                  <p className="mt-auto text-xs leading-relaxed text-muted-foreground">
-                    <span className="font-medium text-foreground/70">Signal</span> {"\u00b7"}{" "}
-                    {card.source} {"\u2014"} {card.signal}
-                  </p>
+                  <div className="mt-auto flex flex-col gap-1">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      <span className="font-medium text-foreground/70">Signal</span> {"\u00b7"}{" "}
+                      {card.source_url ? (
+                        <a
+                          href={card.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2 hover:text-foreground transition-colors"
+                        >
+                          {card.source}
+                        </a>
+                      ) : (
+                        card.source
+                      )}{" "}
+                      {"\u2014"} {card.signal}
+                    </p>
+                  </div>
                 </article>
               )
             })}
