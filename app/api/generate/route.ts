@@ -1,7 +1,14 @@
 import { generateText, Output } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
-import { searchCategoryTrends, searchBrandChatter, mergeSignals, hasExaKey, type ExaSignal } from "@/lib/exa"
+import {
+  searchCategoryTrends,
+  searchBrandChatter,
+  searchCompetitorSignals,
+  mergeSignals,
+  hasExaKey,
+  type ExaSignal,
+} from "@/lib/exa"
 
 // Do NOT use the edge runtime with the AI SDK.
 export const maxDuration = 60
@@ -13,7 +20,7 @@ const cardSchema = z.object({
         trend_name: z.string().describe("3-5 word name for the trend"),
         heat: z.enum(["hot", "rising", "cooling"]),
         why_now: z.string().describe("2 sentences grounded in the search findings"),
-        creative_angle: z.string().describe("A specific Meta (Instagram/Facebook) ad angle"),
+        creative_angle: z.string().describe("A specific ad angle native to the given platform"),
         hook: z.string().describe("An ad headline, max 15 words"),
         source: z.string().describe("The publication or site the signal came from"),
         signal: z.string().describe("1 sentence describing what was found"),
@@ -21,6 +28,17 @@ const cardSchema = z.object({
     )
     .length(3),
 })
+
+const OBJECTIVE_GUIDANCE: Record<string, string> = {
+  Awareness:
+    "prioritize emotional resonance and brand recall over CTA. Hook should stop the scroll.",
+  Consideration:
+    "prioritize education and social proof. Hook should create curiosity or answer a question.",
+  Conversion:
+    "prioritize urgency and direct response. Hook should create immediate desire to act.",
+  Retention:
+    "prioritize community and loyalty. Hook should make existing customers feel seen.",
+}
 
 function buildContext(signals: ExaSignal[]): string {
   if (signals.length === 0) return ""
@@ -37,16 +55,25 @@ function sseEvent(data: unknown): Uint8Array {
 }
 
 export async function POST(req: Request) {
-  const { brand, audience } = (await req.json()) as {
+  const body = (await req.json()) as {
     brand?: string
     audience?: string
+    platform?: string
+    objective?: string
+    competitor?: string
+    market?: string
   }
+
+  const { brand, audience, platform = "Meta", objective = "Awareness", competitor = "", market = "" } = body
 
   if (!brand || !brand.trim()) {
     return Response.json({ error: "A brand is required." }, { status: 400 })
   }
 
   const aud = audience?.trim() || "general consumers"
+  const comp = competitor.trim()
+  const mkt = market.trim()
+  const objectiveGuidance = OBJECTIVE_GUIDANCE[objective] ?? OBJECTIVE_GUIDANCE.Awareness
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -66,20 +93,18 @@ export async function POST(req: Request) {
         })
         const category = rawCategory.trim()
 
-        // Emit the inferred category so the frontend can display it
         controller.enqueue(sseEvent({ type: "category", value: category }))
 
         if (hasExaKey()) {
-          // Phase 2: category trends
+          // Phase 2: category trends (platform + market aware)
           controller.enqueue(
             sseEvent({
               type: "step",
               phase: 2,
-              label: `Scanning for trending topics in ${category}…`,
-              count: undefined,
+              label: `Scanning ${platform} trends in ${category}${mkt ? ` · ${mkt}` : ""}…`,
             }),
           )
-          const trends = await searchCategoryTrends(category)
+          const trends = await searchCategoryTrends(category, platform, mkt)
 
           // Phase 3: brand chatter
           controller.enqueue(
@@ -90,22 +115,36 @@ export async function POST(req: Request) {
               count: trends.length,
             }),
           )
-          const brandChatter = await searchBrandChatter(brand, category)
-
+          const brandChatter = await searchBrandChatter(brand, category, platform, mkt)
           signals = mergeSignals(trends, brandChatter)
           liveSearch = signals.length > 0
 
-          // Phase 4: synthesis
+          // Phase 4 (conditional): competitor signals
+          if (comp) {
+            controller.enqueue(
+              sseEvent({
+                type: "step",
+                phase: 4,
+                label: `Scanning ${comp} creative signals…`,
+                count: signals.length,
+              }),
+            )
+            const competitorSignals = await searchCompetitorSignals(comp, category, platform)
+            signals = mergeSignals(signals, competitorSignals)
+          }
+
+          // Final synthesis phase (phase 4 or 5 depending on competitor)
+          const synthesisPhase = comp ? 5 : 4
           controller.enqueue(
             sseEvent({
               type: "step",
-              phase: 4,
+              phase: synthesisPhase,
               label: `Synthesizing ${signals.length} signals with OpenAI…`,
               count: signals.length,
             }),
           )
         } else {
-          // No Exa key — skip phases 2 & 3, go straight to synthesis
+          // No Exa key — skip search phases, go straight to synthesis
           controller.enqueue(
             sseEvent({
               type: "step",
@@ -118,21 +157,31 @@ export async function POST(req: Request) {
 
         const context = buildContext(signals)
 
-        const system = `You are a creative intelligence analyst for ad agencies building Meta (Instagram/Facebook) campaigns.
+        const system = `You are a creative intelligence analyst for ad agencies.
 Your job is to turn raw market signals into sharp, actionable creative brief cards.
+Platform: ${platform}
+Campaign objective: ${objective}
+${mkt ? `Market: ${mkt}` : ""}
+${comp ? `Key competitor: ${comp}` : ""}
 ${
   liveSearch
     ? "Base every card on the REAL search findings provided. Cite the actual source domain for each card."
-    : "No live search results are available, so use your knowledge of current cultural and category trends. Use a realistic publication name for each source."
+    : "No live search results are available. Use your knowledge of current cultural and category trends. Use a realistic publication name for each source."
 }
 Rules:
 - Return exactly 3 brief cards.
-- "heat" must be exactly one of: hot (trending now), rising (building fast), cooling (losing steam).
-- Make every angle specific to Meta ad formats (Reels, Stories, carousels) and the target audience.`
+- heat must be one of: hot (trending now), rising (building fast), cooling (losing steam).
+- Every creative angle must be native to ${platform} — reference specific formats (e.g. for TikTok: trending sounds, duets, text overlays; for Meta: Reels, Stories, carousels; for YouTube: 60s+ storytelling, thumbnails; for LinkedIn: thought leadership, document posts; for Pinterest: visual discovery, idea pins).
+- Objective is ${objective}: ${objectiveGuidance}
+${comp ? `- At least one card should include a competitive angle against ${comp}.` : ""}`
 
         const prompt = `Brand: ${brand}
 Category: ${category}
 Target audience: ${aud}
+Platform: ${platform}
+Objective: ${objective}
+  Market: ${mkt || "Global"}
+  ${comp ? `Competitor: ${comp}` : ""}
 
 ${context ? `Live web signals from this month:\n\n${context}` : "Generate three timely brief cards for this brand and category."}`
 
@@ -144,7 +193,15 @@ ${context ? `Live web signals from this month:\n\n${context}` : "Generate three 
         })
 
         controller.enqueue(
-          sseEvent({ type: "done", cards: output.cards, liveSearch }),
+          sseEvent({
+            type: "done",
+            cards: output.cards,
+            liveSearch,
+            platform,
+            objective,
+            competitor: comp,
+            market: mkt,
+          }),
         )
       } catch (err) {
         const message = (err as Error).message || "Could not generate brief cards. Please try again."

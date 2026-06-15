@@ -11,7 +11,7 @@ interface Step {
 
 const DEFAULT_STEPS: Step[] = [
   { label: "Identifying category…", status: "pending" },
-  { label: "Scanning for category trends…", status: "pending" },
+  { label: "Scanning for platform trends…", status: "pending" },
   { label: "Scanning brand conversations…", status: "pending" },
   { label: "Synthesizing brief cards…", status: "pending" },
 ]
@@ -25,7 +25,13 @@ function SearchProgress({ steps }: { steps: Step[] }) {
             {step.status === "done" ? (
               <svg className="h-4 w-4 text-rising" viewBox="0 0 16 16" fill="none">
                 <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M5 8l2 2 4-4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             ) : step.status === "active" ? (
               <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
@@ -75,14 +81,32 @@ const HEAT_CONFIG: Record<Heat, { label: string; className: string; dot: string 
   },
 }
 
+const PLATFORMS = ["Meta", "TikTok", "YouTube Shorts", "LinkedIn", "Pinterest"] as const
+const OBJECTIVES = ["Awareness", "Consideration", "Conversion", "Retention"] as const
+
+const inputCls =
+  "rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
+
+interface ResultMeta {
+  inferredCategory: string
+  platform: string
+  objective: string
+  liveSearch: boolean
+}
+
 export function BriefSignal() {
   const [brand, setBrand] = useState("")
   const [audience, setAudience] = useState("")
+  const [platform, setPlatform] = useState<string>("Meta")
+  const [objective, setObjective] = useState<string>("Awareness")
+  const [competitor, setCompetitor] = useState("")
+  const [market, setMarket] = useState("")
+
   const [loading, setLoading] = useState(false)
   const [steps, setSteps] = useState<Step[]>(DEFAULT_STEPS)
   const [inferredCategory, setInferredCategory] = useState<string | null>(null)
   const [cards, setCards] = useState<BriefCard[]>([])
-  const [liveSearch, setLiveSearch] = useState(false)
+  const [resultMeta, setResultMeta] = useState<ResultMeta | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState<number | null>(null)
   const [generatedAt, setGeneratedAt] = useState<string | null>(null)
@@ -100,13 +124,14 @@ export function BriefSignal() {
     setCards([])
     setError(null)
     setInferredCategory(null)
+    setResultMeta(null)
     setSteps(DEFAULT_STEPS)
 
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brand, audience }),
+        body: JSON.stringify({ brand, audience, platform, objective, competitor, market }),
       })
 
       if (!res.ok || !res.body) {
@@ -135,17 +160,27 @@ export function BriefSignal() {
             setInferredCategory(payload.value)
           } else if (payload.type === "step") {
             const phase: number = payload.phase
-            setSteps((prev) =>
-              prev.map((s, i) => {
+            setSteps((prev) => {
+              // Dynamically append a 5th step if the competitor phase arrives
+              const extended =
+                phase === 5 && prev.length === 4
+                  ? [...prev, { label: "", status: "pending" as const }]
+                  : prev
+              return extended.map((s, i) => {
                 if (i === phase - 1) return { ...s, label: payload.label, status: "active" }
                 if (i === phase - 2) return { ...s, status: "done", count: payload.count }
                 return s
-              }),
-            )
+              })
+            })
           } else if (payload.type === "done") {
             setSteps((prev) => prev.map((s) => ({ ...s, status: "done" })))
             setCards(payload.cards)
-            setLiveSearch(payload.liveSearch)
+            setResultMeta({
+              inferredCategory: inferredCategory ?? "",
+              platform: payload.platform,
+              objective: payload.objective,
+              liveSearch: payload.liveSearch,
+            })
             setGeneratedAt(new Date().toLocaleTimeString())
           } else if (payload.type === "error") {
             throw new Error(payload.message)
@@ -163,6 +198,7 @@ export function BriefSignal() {
     setCards([])
     setError(null)
     setInferredCategory(null)
+    setResultMeta(null)
   }
 
   const canGenerate = !loading && brand.trim().length > 0
@@ -178,7 +214,7 @@ export function BriefSignal() {
           </span>
         </div>
         <p className="text-pretty text-muted-foreground">
-          Real-time creative intelligence for Meta advertising teams.
+          Real-time creative intelligence for advertising teams.
         </p>
       </header>
 
@@ -186,42 +222,107 @@ export function BriefSignal() {
       <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
         <span>OpenAI identifies brand category</span>
         <span className="text-primary">{"\u2192"}</span>
-        <span>Exa scans Reddit, trade press, brand newsrooms</span>
+        <span>Exa scans {platform} signals</span>
         <span className="text-primary">{"\u2192"}</span>
-        <span>OpenAI synthesizes trend signals</span>
-        <span className="text-primary">{"\u2192"}</span>
-        <span>Brief cards ready for your creative team</span>
+        <span>OpenAI synthesizes brief cards</span>
       </div>
 
       {/* Form */}
       <div className="mt-8 rounded-xl border border-border bg-card p-5 md:p-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Row 1: Brand + Audience */}
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Brand</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Brand
+            </span>
             <input
-              className="rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
+              className={inputCls}
               placeholder="Nike, Glossier, Oatly..."
               value={brand}
               onChange={(e) => { setBrand(e.target.value); setInferredCategory(null) }}
               onKeyDown={(e) => e.key === "Enter" && generate()}
             />
-            {inferredCategory && (
+            {inferredCategory && cards.length === 0 && (
               <span className="text-xs text-muted-foreground">
                 {"\u21b3"} {inferredCategory}
               </span>
             )}
           </label>
+
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Target audience</span>
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Target audience
+            </span>
             <input
-              className="rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
+              className={inputCls}
               placeholder="Gen Z women 18-24..."
               value={audience}
               onChange={(e) => setAudience(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && generate()}
             />
           </label>
+
+          {/* Row 2: Platform + Objective */}
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Platform
+            </span>
+            <select
+              className={inputCls}
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+            >
+              {PLATFORMS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Objective
+            </span>
+            <select
+              className={inputCls}
+              value={objective}
+              onChange={(e) => setObjective(e.target.value)}
+            >
+              {OBJECTIVES.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </label>
+
+          {/* Row 3: Competitor + Market */}
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Competitor{" "}
+              <span className="normal-case font-normal text-muted-foreground/60">(optional)</span>
+            </span>
+            <input
+              className={inputCls}
+              placeholder="e.g. Adidas, CeraVe..."
+              value={competitor}
+              onChange={(e) => setCompetitor(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && generate()}
+            />
+          </label>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Market{" "}
+              <span className="normal-case font-normal text-muted-foreground/60">(optional)</span>
+            </span>
+            <input
+              className={inputCls}
+              placeholder="e.g. US, UK, Southeast Asia..."
+              value={market}
+              onChange={(e) => setMarket(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && generate()}
+            />
+          </label>
         </div>
+
         <button
           onClick={generate}
           disabled={!canGenerate}
@@ -245,11 +346,36 @@ export function BriefSignal() {
       {cards.length > 0 && (
         <section className="mt-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">
-              {cards.length} signals detected
-              {generatedAt ? ` \u00b7 ${generatedAt}` : ""}
-              {liveSearch ? " \u00b7 live Exa search" : " \u00b7 model knowledge"}
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+              <span>{cards.length} signals detected</span>
+              {generatedAt && <span>{"\u00b7"} {generatedAt}</span>}
+              {resultMeta?.inferredCategory && (
+                <>
+                  <span>{"\u00b7"}</span>
+                  <span className="rounded-md border border-border bg-card px-2 py-0.5 text-xs">
+                    {resultMeta.inferredCategory}
+                  </span>
+                </>
+              )}
+              {resultMeta?.platform && (
+                <>
+                  <span>{"\u00b7"}</span>
+                  <span className="rounded-md border border-border bg-card px-2 py-0.5 text-xs">
+                    {resultMeta.platform}
+                  </span>
+                </>
+              )}
+              {resultMeta?.objective && (
+                <>
+                  <span>{"\u00b7"}</span>
+                  <span className="rounded-md border border-border bg-card px-2 py-0.5 text-xs">
+                    {resultMeta.objective}
+                  </span>
+                </>
+              )}
+              <span>{"\u00b7"}</span>
+              <span>{resultMeta?.liveSearch ? "live Exa search" : "model knowledge"}</span>
+            </div>
             <button
               onClick={reset}
               className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground transition hover:bg-muted"
@@ -340,7 +466,7 @@ export function BriefSignal() {
 
       <footer className="mt-12 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-xs text-muted-foreground">
         <span>BriefSignal</span>
-        <span>OpenAI category inference {"\u00b7"} Exa web search {"\u00b7"} OpenAI synthesis</span>
+        <span>Exa real-time web search {"\u00b7"} OpenAI synthesis</span>
       </footer>
     </div>
   )
