@@ -148,149 +148,105 @@ const WORKING_DOMAINS = [
 function DemoNotes() {
   return (
     <div className="mt-8 flex flex-col gap-6">
-      {/* What works */}
-      <section className="rounded-xl border border-border bg-card p-5 md:p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
-          What works
-        </h2>
-        <ul className="mt-4 flex flex-col gap-3 text-sm text-card-foreground/90">
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
-            <span>
-              <span className="font-medium text-foreground">Category inference</span> — OpenAI
-              (gpt-4o-mini) identifies the brand&apos;s product category before searching, so Exa
-              queries are always domain-specific.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
-            <span>
-              <span className="font-medium text-foreground">Live Exa search</span> — two parallel
-              searches (category trends + brand chatter) run in real time, scoped to the last 21–60
-              days depending on search type.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
-            <span>
-              <span className="font-medium text-foreground">Date-grounded heat signals</span> —
-              heat is assigned by OpenAI using two signals: (1) the published date of the source
-              article relative to today, and (2) momentum language in the snippet. Hot = published
-              within 7 days with active language. Rising = within 30 days or building language.
-              Cooling = older than 30 days or plateau/decline language. The first sentence of
-              why_now is required to cite the article date and what was reported.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
-            <span>
-              <span className="font-medium text-foreground">Social signal proxy</span> — a third
-              parallel search targets platform newsrooms (newsroom.tiktok.com, blog.youtube.com),
-              creator economy press (tubefilter.com, creatoriq.com), and social analytics blogs
-              (sproutsocial.com, later.com) to surface what is actually trending on the selected
-              platform. Runs in parallel with the other two searches, adding no extra latency.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
-            <span>
-              <span className="font-medium text-foreground">Competitor phase</span> — adding a
-              competitor triggers a third Exa search (campaign creative signals) and a
-              system-prompt rule requiring one card to name the competitive tension directly.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
-            <span>
-              <span className="font-medium text-foreground">Platform-native output</span> — Platform
-              and Objective fields shape both the Exa queries and the OpenAI synthesis prompt,
-              producing format-specific creative angles (e.g. TikTok POV vs. Meta carousel).
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
-            <span>
-              <span className="font-medium text-foreground">Source links</span> — each card cites
-              the exact article URL from Exa, clickable to verify the signal. Falls back to plain
-              domain name when running in model-knowledge mode.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
-            <span>
-              <span className="font-medium text-foreground">Graceful degradation</span> — if
-              EXA_API_KEY is missing or a search fails, synthesis still runs using OpenAI model
-              knowledge, with the results bar indicating which mode was used.
-            </span>
-          </li>
-        </ul>
-      </section>
 
-      {/* What does not work */}
-      <section className="rounded-xl border border-border bg-card p-5 md:p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
-          Known limitations
-        </h2>
-        <ul className="mt-4 flex flex-col gap-3 text-sm text-card-foreground/90">
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
-            <span>
-              <span className="font-medium text-foreground">No direct social platform indexing</span>{" "}
-              — TikTok, Instagram, X, and YouTube are not crawlable by Exa. Social signals are
-              proxied via platform newsrooms (newsroom.tiktok.com, blog.youtube.com, about.fb.com
-              for Instagram/Meta), creator economy press (tubefilter.com, creatoriq.com), and
-              social analytics blogs (sproutsocial.com, later.com, hootsuite.com). These cover what
-              is trending on each platform but with a reporting lag of 1–7 days.
-              about.instagram.com, business.instagram.com, and creators.instagram.com are all
-              blocked on this Exa plan.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
-            <span>
-              <span className="font-medium text-foreground">No quantitative metrics</span> — there
-              are no engagement numbers, search volume, or share-of-voice figures. Signals are
-              qualitative editorial and community signals only.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
-            <span>
-              <span className="font-medium text-foreground">Source URL reliability</span> — OpenAI
-              is instructed to use URLs verbatim from the Exa context, but occasionally hallucinates
-              or omits a URL. Always verify before sharing externally.
-            </span>
-          </li>
-          <li className="flex gap-2">
-            <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
-            <span>
-              <span className="font-medium text-foreground">No history or saved briefs</span> —
-              results are ephemeral. There is no database; refreshing the page clears everything.
-            </span>
-          </li>
-        </ul>
-      </section>
+      {/* What works / limitations — two-column on md+ */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <section className="rounded-xl border border-border bg-card p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">What works</h2>
+          <ul className="mt-4 flex flex-col gap-3 text-sm text-card-foreground/90">
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+              <span>
+                <span className="font-medium text-foreground">3 parallel Exa searches</span> — category
+                trends (21 days), brand chatter (60 days), and social proxy (14 days) run simultaneously.
+                A fourth runs when a competitor is added.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+              <span>
+                <span className="font-medium text-foreground">Category inference</span> — gpt-4o-mini
+                identifies the brand category first, so Exa queries are always domain-specific.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+              <span>
+                <span className="font-medium text-foreground">Heat scoring</span> — Hot / Rising /
+                Cooling is derived from article publish date + momentum language in the snippet, not
+                a static label.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+              <span>
+                <span className="font-medium text-foreground">Platform-native output</span> — platform
+                selection shapes Exa query framing, creative angle, and ad format recommendations.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+              <span>
+                <span className="font-medium text-foreground">Source links</span> — each card cites
+                the exact Exa article URL. Falls back to model knowledge if the key is missing.
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">Known limitations</h2>
+          <ul className="mt-4 flex flex-col gap-3 text-sm text-card-foreground/90">
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
+              <span>
+                <span className="font-medium text-foreground">No direct social indexing</span> — TikTok,
+                Instagram, X, and YouTube are not crawlable by Exa. Social signals come from platform
+                newsrooms and analytics blogs with a 1–7 day lag. See inaccessible domains below.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
+              <span>
+                <span className="font-medium text-foreground">No quantitative metrics</span> — signals
+                are qualitative only. No engagement numbers, search volume, or share-of-voice.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
+              <span>
+                <span className="font-medium text-foreground">Source URL reliability</span> — OpenAI
+                occasionally omits or hallucinates a URL. Verify before sharing externally.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
+              <span>
+                <span className="font-medium text-foreground">No saved briefs</span> — results are
+                ephemeral. Refreshing clears everything.
+              </span>
+            </li>
+          </ul>
+        </section>
+      </div>
 
       {/* Blocked domains */}
-      <section className="rounded-xl border border-border bg-card p-5 md:p-6">
+      <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
           Inaccessible domains
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          These domains return 403 regardless of Exa plan. There are two causes — Exa documents
-          both as distinct error codes. <span className="text-foreground/70 font-medium">Paywalled sites</span> return{" "}
-          <span className="font-mono text-xs text-foreground/60">SOURCE_NOT_AVAILABLE</span>; sites
-          that disallow crawlers in their <span className="font-mono text-xs text-foreground/60">robots.txt</span>{" "}
-          return <span className="font-mono text-xs text-foreground/60">ROBOTS_FILTER_FAILED</span>.
-          Including either in a search causes the entire request to fail, so they are excluded from
-          all include lists.
+          All return 403 regardless of Exa plan.{" "}
+          <span className="font-mono text-[11px] text-foreground/60">SOURCE_NOT_AVAILABLE</span> = paywalled.{" "}
+          <span className="font-mono text-[11px] text-foreground/60">ROBOTS_FILTER_FAILED</span> = blocked by{" "}
+          <span className="font-mono text-[11px] text-foreground/60">robots.txt</span>.
+          Including either causes the entire search request to fail.
         </p>
         <div className="mt-4 overflow-hidden rounded-lg border border-border">
-          {/* Header */}
           <div className="grid grid-cols-[180px_1fr_1fr] border-b border-border bg-input px-4 py-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Domain</span>
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What it covers</span>
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why blocked</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Covers</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Reason</span>
           </div>
           {BLOCKED_DOMAINS.map((d, i) => (
             <div
@@ -306,24 +262,6 @@ function DemoNotes() {
                 <span className="text-xs leading-relaxed text-muted-foreground">{d.why}</span>
               </div>
             </div>
-          ))}
-        </div>
-
-        <h2 className="mt-6 text-sm font-semibold uppercase tracking-wide text-foreground">
-          Active domains (verified 200)
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          These domains are confirmed accessible on the current plan and are used across the three
-          search functions.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {WORKING_DOMAINS.map((d) => (
-            <span
-              key={d}
-              className="rounded-md border border-rising/30 bg-rising/10 px-2.5 py-1 font-mono text-xs text-rising"
-            >
-              {d}
-            </span>
           ))}
         </div>
       </section>
