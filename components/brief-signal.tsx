@@ -92,7 +92,6 @@ const HEAT_CONFIG: Record<Heat, { label: string; className: string; dot: string 
 }
 
 const PLATFORMS = ["Meta", "TikTok", "YouTube Shorts", "LinkedIn", "Pinterest"] as const
-const OBJECTIVES = ["Awareness", "Consideration", "Conversion", "Retention"] as const
 
 const inputCls =
   "rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
@@ -311,7 +310,6 @@ function DemoNotes() {
 interface ResultMeta {
   inferredCategory: string
   platform: string
-  objective: string
   liveSearch: boolean
 }
 
@@ -319,9 +317,7 @@ export function BriefSignal() {
   const [brand, setBrand] = useState("")
   const [audience, setAudience] = useState("")
   const [platform, setPlatform] = useState<string>("Meta")
-  const [objective, setObjective] = useState<string>("Awareness")
   const [competitor, setCompetitor] = useState("")
-  const [market, setMarket] = useState("")
 
   const [activeTab, setActiveTab] = useState<"app" | "notes">("app")
   const [loading, setLoading] = useState(false)
@@ -353,7 +349,7 @@ export function BriefSignal() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brand, audience, platform, objective, competitor, market }),
+        body: JSON.stringify({ brand, audience, platform, competitor }),
       })
 
       if (!res.ok || !res.body) {
@@ -400,7 +396,6 @@ export function BriefSignal() {
             setResultMeta({
               inferredCategory: inferredCategory ?? "",
               platform: payload.platform,
-              objective: payload.objective,
               liveSearch: payload.liveSearch,
             })
             setGeneratedAt(new Date().toLocaleTimeString())
@@ -530,22 +525,6 @@ export function BriefSignal() {
 
           <label className="flex flex-col gap-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Objective
-            </span>
-            <select
-              className={inputCls}
-              value={objective}
-              onChange={(e) => setObjective(e.target.value)}
-            >
-              {OBJECTIVES.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-          </label>
-
-          {/* Row 3: Competitor + Market */}
-          <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Competitor{" "}
               <span className="normal-case font-normal text-muted-foreground/60">(optional)</span>
             </span>
@@ -554,20 +533,6 @@ export function BriefSignal() {
               placeholder="e.g. Adidas, CeraVe..."
               value={competitor}
               onChange={(e) => setCompetitor(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && generate()}
-            />
-          </label>
-
-          <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Market{" "}
-              <span className="normal-case font-normal text-muted-foreground/60">(optional)</span>
-            </span>
-            <input
-              className={inputCls}
-              placeholder="e.g. US, UK, Southeast Asia..."
-              value={market}
-              onChange={(e) => setMarket(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && generate()}
             />
           </label>
@@ -615,14 +580,7 @@ export function BriefSignal() {
                   </span>
                 </>
               )}
-              {resultMeta?.objective && (
-                <>
-                  <span>{"\u00b7"}</span>
-                  <span className="rounded-md border border-border bg-card px-2 py-0.5 text-xs">
-                    {resultMeta.objective}
-                  </span>
-                </>
-              )}
+
               <span>{"\u00b7"}</span>
               <span>{resultMeta?.liveSearch ? "live Exa search" : "model knowledge"}</span>
             </div>
