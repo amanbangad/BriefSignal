@@ -13,4 +13,8 @@ export interface BriefCard {
 export interface GenerateResponse {
   cards: BriefCard[]
   liveSearch: boolean
+  platform: string
+  objective: string
+  competitor: string
+  market: string
 }

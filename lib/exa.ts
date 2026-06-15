@@ -67,12 +67,47 @@ async function exaSearch(query: string, numResults = 5): Promise<ExaSignal[]> {
   }))
 }
 
-export async function searchCategoryTrends(category: string): Promise<ExaSignal[]> {
-  return exaSearch(`emerging trends and cultural moments in ${category} this month`, 5)
+function buildTrendsQuery(category: string, platform?: string, market?: string): string {
+  const platformStr = platform && platform !== "Meta" ? `${platform} ` : ""
+  const marketStr = market ? ` ${market}` : ""
+  if (platformStr) {
+    return `trending ${platformStr}content ${category.toLowerCase()}${marketStr} this month`
+  }
+  return `emerging trends and cultural moments in ${category}${marketStr} this month`
 }
 
-export async function searchBrandChatter(brand: string, category: string): Promise<ExaSignal[]> {
-  return exaSearch(`recent consumer conversations and news about ${brand} ${category}`, 5)
+function buildChatterQuery(brand: string, category: string, platform?: string, market?: string): string {
+  const platformStr = platform && platform !== "Meta" ? ` ${platform}` : ""
+  const marketStr = market ? ` ${market}` : ""
+  return `${brand} ${category.toLowerCase()} consumer conversations${platformStr}${marketStr} recent`
+}
+
+export async function searchCategoryTrends(
+  category: string,
+  platform?: string,
+  market?: string,
+): Promise<ExaSignal[]> {
+  return exaSearch(buildTrendsQuery(category, platform, market), 5)
+}
+
+export async function searchBrandChatter(
+  brand: string,
+  category: string,
+  platform?: string,
+  market?: string,
+): Promise<ExaSignal[]> {
+  return exaSearch(buildChatterQuery(brand, category, platform, market), 5)
+}
+
+export async function searchCompetitorSignals(
+  competitor: string,
+  category: string,
+  platform: string,
+): Promise<ExaSignal[]> {
+  return exaSearch(
+    `${competitor} ${category.toLowerCase()} advertising campaign creative ${platform} recent`,
+    4,
+  )
 }
 
 export function mergeSignals(a: ExaSignal[], b: ExaSignal[]): ExaSignal[] {
