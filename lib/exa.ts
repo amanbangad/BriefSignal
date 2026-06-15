@@ -301,26 +301,47 @@ export function mergeSignals(a: ExaSignal[], b: ExaSignal[]): ExaSignal[] {
   })
 }
 
+// Words that indicate an article is about a brand's own strategy/campaign rather
+// than an external trend, consumer reaction, or category signal.
+const BRAND_STRATEGY_WORDS = [
+  "campaign", "activation", "activat", "strategy", "strateg",
+  "launch", "unveil", "reveal", "debut", "release", "drop",
+  "partner", "collaborat", "sponsorship", "sponsor",
+  "ad spot", "commercial", "world cup", "world-cup",
+  "marketing push", "marketing effort", "marketing strategy",
+  "brand film", "brand video", "brand spot",
+  "focuses on", "focus on", "bets on", "leans into", "doubles down",
+  "leverag", "harnessing", "capitaliz",
+  "introduces", "taps", "signs", "enlists", "features",
+]
+
 /**
- * Remove signals whose title is primarily about the brand's own campaign/activation.
- * Keeps signals where the brand is mentioned in passing but the article is about a
- * broader trend, consumer reaction, or category movement.
+ * Remove signals that are primarily about the brand's own campaigns, strategy,
+ * or activations. Works by scoring both title and snippet for brand-strategy
+ * co-occurrence — a signal is dropped if the brand name appears AND two or more
+ * strategy words appear in the same text block.
  */
 export function filterBrandOwnCampaigns(signals: ExaSignal[], brand: string): ExaSignal[] {
   if (!brand.trim()) return signals
   const b = brand.toLowerCase()
-  // Patterns that indicate the article is a brand-authored or campaign-recap piece.
-  const ownCampaignPatterns = [
-    new RegExp(`^${b}['s]* (launch|unveil|reveal|debut|release|campaign|activat|partner|collaborat|drop|introduc)`, "i"),
-    new RegExp(`^${b}['s]* (world cup|sponsorship|ad|spot|commercial|film|film|video)`, "i"),
-    new RegExp(`^${b} and `, "i"),  // "Nike and McDonald's…" — brand-led collab announcement
-  ]
+
   return signals.filter((s) => {
     const title = s.title.toLowerCase()
-    // If the title starts with the brand name AND matches a campaign-recap pattern, drop it.
-    if (title.startsWith(b) && ownCampaignPatterns.some((p) => p.test(title))) {
-      return false
+    const snippet = s.snippet.toLowerCase()
+
+    // Check title: if brand appears AND 1+ strategy word appears, drop it.
+    // Title is short so a single co-occurrence is a strong signal.
+    if (title.includes(b)) {
+      const titleHits = BRAND_STRATEGY_WORDS.filter((w) => title.includes(w))
+      if (titleHits.length >= 1) return false
     }
+
+    // Check snippet: brand + 2+ strategy words = article is about the brand's own work.
+    if (snippet.includes(b)) {
+      const snippetHits = BRAND_STRATEGY_WORDS.filter((w) => snippet.includes(w))
+      if (snippetHits.length >= 2) return false
+    }
+
     return true
   })
 }
