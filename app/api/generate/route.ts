@@ -217,11 +217,26 @@ Output rules:
 - example_brands: 1-2 real brands with a one-sentence description of their execution. Must be verifiable — do not invent examples.
 - copy_directions: 2-3 alternative headlines or copy angles for the same signal in different tones (e.g. bold/provocative, warm/relatable, witty/ironic).
 - Vague why_now observations ("consumers want authenticity") are not acceptable.
-- CRITICAL: Do NOT build cards around ${brand}'s own campaigns, activations, or press releases. \
-  The user already knows what ${brand} is doing — cards must reflect external market trends, \
-  audience sentiment, and category signals that ${brand} can respond to, not recap their own work.
 - Objective is ${objective}: ${objectiveGuidance}
-${comp ? `- One card must contain a direct competitive angle against ${comp}. Name the tension clearly.` : ""}`
+${comp ? `- One card must contain a direct competitive angle against ${comp}. Name the tension clearly.` : ""}
+
+SIGNAL QUALITY GATE — apply this before writing any card:
+For each source article in the context, ask: "Is this article primarily about what ${brand} is already doing, or is it about an external trend that ${brand} could respond to?"
+
+DISCARD any source article (do not base a card on it) if the article:
+- Describes a ${brand} campaign, activation, launch, or product drop
+- Reports on ${brand}'s own marketing strategy or creative direction
+- Covers a ${brand} partnership, sponsorship, or collaboration
+- Is a press release, brand statement, or newsroom post from ${brand}
+- Uses ${brand} as the subject of the headline (e.g. "${brand} bets on...", "${brand} unveils...", "${brand} partners with...")
+
+KEEP source articles where:
+- ${brand} is mentioned only as one example among several brands, or not at all
+- The article is about a consumer behaviour, cultural moment, or category trend
+- The article reports on audience reactions, sentiment, or community discussion
+- The article covers a competitor, creator, or industry-wide movement
+
+If after filtering there are fewer than 3 usable sources, synthesise the remaining cards from genuine category and cultural knowledge — do not fall back to ${brand}'s own campaigns as a substitute.`
 
         const prompt = `Brand: ${brand}
 Category: ${category}
