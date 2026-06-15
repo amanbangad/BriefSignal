@@ -87,6 +87,179 @@ const OBJECTIVES = ["Awareness", "Consideration", "Conversion", "Retention"] as 
 const inputCls =
   "rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
 
+const BLOCKED_DOMAINS = [
+  "nytimes.com",
+  "theatlantic.com",
+  "reddit.com",
+  "businessinsider.com",
+  "forbes.com",
+]
+
+const WORKING_DOMAINS = [
+  "adweek.com",
+  "digiday.com",
+  "thedrum.com",
+  "marketingweek.com",
+  "campaignlive.com",
+  "voguebusiness.com",
+  "glossy.co",
+  "businessoffashion.com",
+  "wwd.com",
+  "fastcompany.com",
+  "wired.com",
+  "trendwatching.com",
+  "emarketer.com",
+  "creativebrief.com",
+  "morningbrew.com",
+  "prnewswire.com",
+  "businesswire.com",
+  "techcrunch.com",
+  "substack.com",
+  "mediapost.com",
+]
+
+function DemoNotes() {
+  return (
+    <div className="mt-8 flex flex-col gap-6">
+      {/* What works */}
+      <section className="rounded-xl border border-border bg-card p-5 md:p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+          What works
+        </h2>
+        <ul className="mt-4 flex flex-col gap-3 text-sm text-card-foreground/90">
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Category inference</span> — OpenAI
+              (gpt-4o-mini) identifies the brand&apos;s product category before searching, so Exa
+              queries are always domain-specific.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Live Exa search</span> — two parallel
+              searches (category trends + brand chatter) run in real time, scoped to the last 14–60
+              days depending on search type.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Competitor phase</span> — adding a
+              competitor triggers a third Exa search (campaign creative signals) and a
+              system-prompt rule requiring one card to name the competitive tension directly.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Platform-native output</span> — Platform
+              and Objective fields shape both the Exa queries and the OpenAI synthesis prompt,
+              producing format-specific creative angles (e.g. TikTok POV vs. Meta carousel).
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Source links</span> — each card cites
+              the exact article URL from Exa, clickable to verify the signal. Falls back to plain
+              domain name when running in model-knowledge mode.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Graceful degradation</span> — if
+              EXA_API_KEY is missing or a search fails, synthesis still runs using OpenAI model
+              knowledge, with the results bar indicating which mode was used.
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      {/* What does not work */}
+      <section className="rounded-xl border border-border bg-card p-5 md:p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+          Known limitations
+        </h2>
+        <ul className="mt-4 flex flex-col gap-3 text-sm text-card-foreground/90">
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
+            <span>
+              <span className="font-medium text-foreground">No social media data</span> — TikTok,
+              Instagram, X, and YouTube are not indexed by Exa. Platform selection shapes query
+              framing and synthesis format, but does not pull actual in-platform content.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
+            <span>
+              <span className="font-medium text-foreground">No quantitative metrics</span> — there
+              are no engagement numbers, search volume, or share-of-voice figures. Signals are
+              qualitative editorial and community signals only.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
+            <span>
+              <span className="font-medium text-foreground">Source URL reliability</span> — OpenAI
+              is instructed to use URLs verbatim from the Exa context, but occasionally hallucinates
+              or omits a URL. Always verify before sharing externally.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
+            <span>
+              <span className="font-medium text-foreground">No history or saved briefs</span> —
+              results are ephemeral. There is no database; refreshing the page clears everything.
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      {/* Blocked domains */}
+      <section className="rounded-xl border border-border bg-card p-5 md:p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground">
+          Blocked domains (Exa free plan)
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The following domains return 403 on the current Exa plan and have been removed from all
+          include lists. Adding them causes the entire search to fail.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {BLOCKED_DOMAINS.map((d) => (
+            <span
+              key={d}
+              className="rounded-md border border-hot/30 bg-hot/10 px-2.5 py-1 font-mono text-xs text-hot"
+            >
+              {d}
+            </span>
+          ))}
+        </div>
+
+        <h2 className="mt-6 text-sm font-semibold uppercase tracking-wide text-foreground">
+          Active domains (verified 200)
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          These domains are confirmed accessible on the current plan and are used across the three
+          search functions.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {WORKING_DOMAINS.map((d) => (
+            <span
+              key={d}
+              className="rounded-md border border-rising/30 bg-rising/10 px-2.5 py-1 font-mono text-xs text-rising"
+            >
+              {d}
+            </span>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
 interface ResultMeta {
   inferredCategory: string
   platform: string
@@ -102,6 +275,7 @@ export function BriefSignal() {
   const [competitor, setCompetitor] = useState("")
   const [market, setMarket] = useState("")
 
+  const [activeTab, setActiveTab] = useState<"app" | "notes">("app")
   const [loading, setLoading] = useState(false)
   const [steps, setSteps] = useState<Step[]>(DEFAULT_STEPS)
   const [inferredCategory, setInferredCategory] = useState<string | null>(null)
@@ -207,17 +381,45 @@ export function BriefSignal() {
     <div className="mx-auto w-full max-w-5xl px-5 py-10 md:py-14">
       {/* Header */}
       <header className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl font-semibold tracking-tight">BriefSignal</span>
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-            powered by Exa
-          </span>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl font-semibold tracking-tight">BriefSignal</span>
+            <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+              powered by Exa
+            </span>
+          </div>
+          {/* Tab switcher */}
+          <div className="flex items-center rounded-lg border border-border bg-card p-1">
+            <button
+              onClick={() => setActiveTab("app")}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                activeTab === "app"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              App
+            </button>
+            <button
+              onClick={() => setActiveTab("notes")}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                activeTab === "notes"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Demo notes
+            </button>
+          </div>
         </div>
         <p className="text-pretty text-muted-foreground">
           Real-time creative intelligence for advertising teams.
         </p>
       </header>
 
+      {activeTab === "notes" && <DemoNotes />}
+
+      {activeTab === "app" && <>
       {/* How it works */}
       <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
         <span>OpenAI identifies brand category</span>
@@ -477,6 +679,8 @@ export function BriefSignal() {
           </p>
         </div>
       )}
+
+      </>}
 
       <footer className="mt-12 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-xs text-muted-foreground">
         <span>BriefSignal</span>
