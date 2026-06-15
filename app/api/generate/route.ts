@@ -214,6 +214,9 @@ Output rules:
 - example_brands: 1-2 real brands with a one-sentence description of their execution. Must be verifiable — do not invent examples.
 - copy_directions: 2-3 alternative headlines or copy angles for the same signal in different tones (e.g. bold/provocative, warm/relatable, witty/ironic).
 - Vague why_now observations ("consumers want authenticity") are not acceptable.
+- CRITICAL: Do NOT build cards around ${brand}'s own campaigns, activations, or press releases. \
+  The user already knows what ${brand} is doing — cards must reflect external market trends, \
+  audience sentiment, and category signals that ${brand} can respond to, not recap their own work.
 - Objective is ${objective}: ${objectiveGuidance}
 ${comp ? `- One card must contain a direct competitive angle against ${comp}. Name the tension clearly.` : ""}`
 
