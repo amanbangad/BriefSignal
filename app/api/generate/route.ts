@@ -18,7 +18,7 @@ const cardSchema = z.object({
     .array(
       z.object({
         trend_name: z.string().describe("3-5 word name for the trend"),
-        heat: z.enum(["hot", "rising", "cooling"]),
+        heat: z.enum(["hot", "rising", "cooling"]).describe("hot = published ≤7 days ago with active momentum language; rising = published ≤30 days ago or building momentum language; cooling = published >30 days ago or plateau/decline language"),
         why_now: z.string().describe("2 sentences grounded in the search findings"),
         creative_angle: z.string().describe("A specific ad angle native to the given platform"),
         hook: z.string().describe("An ad headline, max 15 words"),
@@ -158,9 +158,13 @@ export async function POST(req: Request) {
 
         const context = buildContext(signals)
 
+        const today = new Date().toISOString().slice(0, 10)
+
         const system = `You are a senior creative strategist embedded in a top-tier ad agency. \
 Your output goes directly into the hands of a creative director or VP of Strategy who needs \
 to brief a creative team today — not in two weeks after the cultural moment has passed.
+
+Today's date: ${today}
 
 Context:
 - Platform: ${platform}
@@ -179,9 +183,17 @@ Use your knowledge of what is genuinely resonating right now. \
 Use a realistic publication name for source and an empty string for source_url.`
 }
 
+Heat assignment rules (apply these in order — this is the most important instruction):
+1. Look at the published date of the source article. Calculate how many days ago it was relative to today (${today}).
+2. Look at the language in the snippet: words like "surge", "viral", "exploding", "just launched", "this week" signal hot; "growing", "gaining", "emerging", "brands are starting to" signal rising; "declining", "slowing", "peaked", "was" signal cooling.
+3. Combine date recency and language signal to assign heat:
+   - "hot": published within the last 7 days AND language signals active momentum. Act this week.
+   - "rising": published within the last 30 days OR language signals building momentum. Act this month.
+   - "cooling": published more than 30 days ago AND language signals plateau or decline, OR the trend is widely adopted (no longer differentiated). Use with caution or subvert.
+4. The first sentence of why_now MUST state the publication date and what the source reported. The second sentence must state the urgency for the creative team specifically.
+
 Output rules:
 - Return exactly 3 brief cards.
-- heat values: "hot" = breaking now (act this week), "rising" = building momentum (act this month), "cooling" = fading (use with caution or subvert).
 - creative_angle must be a concrete, platform-native format — not a generic idea. \
   For Meta: specify Reels, Stories carousel, UGC-style, or static with bold text overlay. \
   For TikTok: specify trending sound, duet, POV, or text-overlay hook. \
@@ -189,7 +201,7 @@ Output rules:
   For LinkedIn: specify thought-leadership post, document carousel, or event coverage. \
   For Pinterest: specify idea pin, visual search optimised static, or seasonal board.
 - hook is a single ad headline, max 15 words. Write it like a copywriter, not a strategist — make it feel finished, not briefed.
-- why_now must explain the cultural or business urgency in exactly 2 sentences. Be specific. Vague trend observations ("consumers want authenticity") are not acceptable.
+- Vague why_now observations ("consumers want authenticity") are not acceptable.
 - Objective is ${objective}: ${objectiveGuidance}
 ${comp ? `- One card must contain a direct competitive angle against ${comp}. Name the tension clearly.` : ""}`
 

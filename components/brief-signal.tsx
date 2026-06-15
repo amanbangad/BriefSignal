@@ -139,8 +139,19 @@ function DemoNotes() {
             <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
             <span>
               <span className="font-medium text-foreground">Live Exa search</span> — two parallel
-              searches (category trends + brand chatter) run in real time, scoped to the last 14–60
+              searches (category trends + brand chatter) run in real time, scoped to the last 21–60
               days depending on search type.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Date-grounded heat signals</span> —
+              heat is assigned by OpenAI using two signals: (1) the published date of the source
+              article relative to today, and (2) momentum language in the snippet. Hot = published
+              within 7 days with active language. Rising = within 30 days or building language.
+              Cooling = older than 30 days or plateau/decline language. The first sentence of
+              why_now is required to cite the article date and what was reported.
             </span>
           </li>
           <li className="flex gap-2">
