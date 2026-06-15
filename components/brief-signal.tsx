@@ -3,6 +3,17 @@
 import { useState } from "react"
 import type { BriefCard, Heat } from "@/lib/types"
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="h-3.5 w-0.5 rounded-full bg-primary/50" />
+      <span className="text-xs font-semibold uppercase tracking-widest text-foreground/60">
+        {children}
+      </span>
+    </div>
+  )
+}
+
 interface Step {
   label: string
   status: "pending" | "active" | "done"
@@ -671,9 +682,7 @@ export function BriefSignal() {
 
                       {/* Why now */}
                       <div className="px-5 py-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Why now
-                        </span>
+                        <SectionLabel>Why now</SectionLabel>
                         <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
                           {card.why_now}
                         </p>
@@ -681,9 +690,7 @@ export function BriefSignal() {
 
                       {/* Audience tension */}
                       <div className="px-5 py-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Audience tension
-                        </span>
+                        <SectionLabel>Audience tension</SectionLabel>
                         <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
                           {card.audience_tension}
                         </p>
@@ -691,9 +698,7 @@ export function BriefSignal() {
 
                       {/* Do / Don't */}
                       <div className="px-5 py-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Do / Don&apos;t
-                        </span>
+                        <SectionLabel>Do / Don&apos;t</SectionLabel>
                         <div className="mt-3 flex flex-col gap-2">
                           <div className="flex items-start gap-3 rounded-lg border border-rising/20 bg-rising/5 px-3.5 py-3">
                             <svg className="mt-0.5 h-4 w-4 shrink-0 text-rising" viewBox="0 0 16 16" fill="none">
@@ -714,9 +719,7 @@ export function BriefSignal() {
 
                       {/* Example brands */}
                       <div className="px-5 py-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Brands doing it
-                        </span>
+                        <SectionLabel>Brands doing it</SectionLabel>
                         <div className="mt-2 flex flex-col gap-2">
                           {card.example_brands?.map((b, j) => (
                             <div key={j} className="text-sm leading-relaxed">
@@ -734,9 +737,7 @@ export function BriefSignal() {
                       {/* Ad hook */}
                       <div className="px-5 py-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            Ad hook
-                          </span>
+                          <SectionLabel>Ad hook</SectionLabel>
                           <button
                             onClick={() => copyHook(card.hook, i)}
                             className="text-xs font-medium text-primary transition hover:opacity-80"
@@ -751,9 +752,7 @@ export function BriefSignal() {
 
                       {/* Copy directions */}
                       <div className="px-5 py-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Copy directions
-                        </span>
+                        <SectionLabel>Copy directions</SectionLabel>
                         <ul className="mt-2 flex flex-col gap-2">
                           {card.copy_directions?.map((dir, j) => (
                             <li key={j} className="flex gap-2 text-sm leading-relaxed text-card-foreground/90">
@@ -766,9 +765,7 @@ export function BriefSignal() {
 
                       {/* Creative angle */}
                       <div className="px-5 py-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Creative angle
-                        </span>
+                        <SectionLabel>Creative angle</SectionLabel>
                         <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
                           {card.creative_angle}
                         </p>
@@ -776,9 +773,7 @@ export function BriefSignal() {
 
                       {/* Ad formats */}
                       <div className="px-5 py-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Ad formats
-                        </span>
+                        <SectionLabel>Ad formats</SectionLabel>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {card.ad_formats?.map((fmt, j) => (
                             <span
@@ -793,9 +788,7 @@ export function BriefSignal() {
 
                       {/* Signal */}
                       <div className="px-5 py-4">
-                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Signal
-                        </span>
+                        <SectionLabel>Signal</SectionLabel>
                         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                           {card.signal}
                         </p>
