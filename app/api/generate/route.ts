@@ -1,4 +1,5 @@
 import { generateText, Output } from "ai"
+import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
 import { gatherSignals, hasExaKey, type ExaSignal } from "@/lib/exa"
 import type { GenerateResponse } from "@/lib/types"
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
 
     const context = buildContext(signals)
 
-    // 2. Have Claude synthesize the signals into structured brief cards.
+    // 2. Have OpenAI synthesize the signals into structured brief cards.
     const system = `You are a creative intelligence analyst for ad agencies building Meta (Instagram/Facebook) campaigns.
 Your job is to turn raw market signals into sharp, actionable creative brief cards.
 ${
@@ -81,7 +82,8 @@ Target audience: ${aud}
 ${context ? `Live web signals from this month:\n\n${context}` : "Generate three timely brief cards for this brand and category."}`
 
     const { output } = await generateText({
-      model: "anthropic/claude-sonnet-4.6",
+      // Uses the OpenAI provider directly with your OPENAI_API_KEY.
+      model: openai("gpt-4o"),
       system,
       prompt,
       output: Output.object({ schema: cardSchema }),
@@ -96,13 +98,13 @@ ${context ? `Live web signals from this month:\n\n${context}` : "Generate three 
     const message = (err as Error).message || ""
     console.log("[v0] generate route error:", message)
 
-    if (/credit card|AI Gateway/i.test(message)) {
+    if (/api key|OPENAI_API_KEY|authentication|401/i.test(message)) {
       return Response.json(
         {
           error:
-            "AI Gateway needs a credit card on file to unlock free credits. Add one in your Vercel dashboard, then try again.",
+            "OpenAI API key is missing or invalid. Add a valid OPENAI_API_KEY to your project, then try again.",
         },
-        { status: 402 },
+        { status: 401 },
       )
     }
 
