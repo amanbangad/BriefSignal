@@ -694,14 +694,20 @@ export function BriefSignal() {
                         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           Do / Don&apos;t
                         </span>
-                        <div className="mt-2 flex flex-col gap-2">
-                          <div className="flex gap-2 text-sm">
-                            <span className="shrink-0 font-semibold text-rising">Do</span>
-                            <span className="leading-relaxed text-card-foreground/90">{card.do_dont.do}</span>
+                        <div className="mt-3 flex flex-col gap-2">
+                          <div className="flex items-start gap-3 rounded-lg border border-rising/20 bg-rising/5 px-3.5 py-3">
+                            <svg className="mt-0.5 h-4 w-4 shrink-0 text-rising" viewBox="0 0 16 16" fill="none">
+                              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                              <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="text-sm leading-relaxed text-card-foreground/90">{card.do_dont.do}</span>
                           </div>
-                          <div className="flex gap-2 text-sm">
-                            <span className="shrink-0 font-semibold text-hot">Don&apos;t</span>
-                            <span className="leading-relaxed text-card-foreground/90">{card.do_dont.dont}</span>
+                          <div className="flex items-start gap-3 rounded-lg border border-hot/20 bg-hot/5 px-3.5 py-3">
+                            <svg className="mt-0.5 h-4 w-4 shrink-0 text-hot" viewBox="0 0 16 16" fill="none">
+                              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+                              <path d="M5.5 10.5l5-5M10.5 10.5l-5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </svg>
+                            <span className="text-sm leading-relaxed text-card-foreground/90">{card.do_dont.dont}</span>
                           </div>
                         </div>
                       </div>
