@@ -34,7 +34,7 @@ function daysAgoISO(days: number): string {
   return new Date(Date.now() - 1000 * 60 * 60 * 24 * days).toISOString()
 }
 
-// Domains that consistently produce high-quality marketing/trend signals.
+// Trade press and cultural editorial — what creative directors actually read.
 const TREND_INCLUDE_DOMAINS = [
   "adweek.com",
   "marketingweek.com",
@@ -50,19 +50,37 @@ const TREND_INCLUDE_DOMAINS = [
   "wired.com",
   "thedrum.com",
   "campaignlive.com",
+  "creativebrief.com",
+  "morningbrew.com",
+  "theatlantic.com",
+  "nytimes.com",
 ]
 
-// Domains that produce noisy or low-signal results for marketing research.
+// Brand chatter: include Reddit, brand newsrooms, and creator-adjacent press.
+// These are the primary open-web sources that no social listening tool covers.
+const BRAND_CHATTER_INCLUDE_DOMAINS = [
+  "reddit.com",
+  "prnewswire.com",
+  "businesswire.com",
+  "businessinsider.com",
+  "forbes.com",
+  "techcrunch.com",
+  "glossy.co",
+  "digiday.com",
+  "adweek.com",
+  "substack.com",
+]
+
+// Low-signal domains across all search types.
 const NOISE_EXCLUDE_DOMAINS = [
   "wikipedia.org",
   "linkedin.com",
   "glassdoor.com",
   "indeed.com",
-  "reddit.com",
   "quora.com",
 ]
 
-// Domains useful for competitor ad/campaign research.
+// Competitor intelligence: campaign reporting and brand PR outlets.
 const COMPETITOR_INCLUDE_DOMAINS = [
   "adweek.com",
   "campaignlive.com",
@@ -72,6 +90,7 @@ const COMPETITOR_INCLUDE_DOMAINS = [
   "businesswire.com",
   "prnewswire.com",
   "mediapost.com",
+  "creativebrief.com",
 ]
 
 interface ExaSearchOptions {
@@ -144,15 +163,17 @@ function buildTrendsQuery(category: string, platform?: string, market?: string):
   const platformStr = platform && platform !== "Meta" ? `${platform} ` : ""
   const marketStr = market ? ` ${market}` : ""
   if (platformStr) {
-    return `trending ${platformStr}content ${category.toLowerCase()}${marketStr} this month`
+    // Platform-specific framing surfaces creator and native content trends.
+    return `${platformStr}creator trend ${category.toLowerCase()} content${marketStr} this week`
   }
-  return `emerging trends and cultural moments in ${category}${marketStr} this month`
+  return `cultural moment or emerging consumer trend ${category.toLowerCase()}${marketStr} advertising`
 }
 
 function buildChatterQuery(brand: string, category: string, platform?: string, market?: string): string {
   const platformStr = platform && platform !== "Meta" ? ` ${platform}` : ""
   const marketStr = market ? ` ${market}` : ""
-  return `${brand} ${category.toLowerCase()} consumer conversations${platformStr}${marketStr} recent`
+  // Reddit + brand newsrooms are the signal sources the positioning doc calls out explicitly.
+  return `${brand} ${category.toLowerCase()} consumer reaction Reddit discussion${platformStr}${marketStr}`
 }
 
 export async function searchCategoryTrends(
@@ -163,9 +184,11 @@ export async function searchCategoryTrends(
   return exaSearch({
     query: buildTrendsQuery(category, platform, market),
     numResults: 7,
-    // Trends go stale fast — tighten to last 14 days.
-    startPublishedDate: daysAgoISO(14),
-    highlightQuery: "emerging consumer trend, cultural moment, or viral behavior",
+    // Trend windows are short (Publicis: ~5 days). 21 days captures the editorial
+    // reaction wave that appears after a trend peaks on social.
+    startPublishedDate: daysAgoISO(21),
+    highlightQuery:
+      "creative trend, cultural moment, consumer behavior shift, or viral content pattern relevant to advertisers",
     includeDomains: TREND_INCLUDE_DOMAINS,
     excludeDomains: NOISE_EXCLUDE_DOMAINS,
   })
@@ -179,10 +202,14 @@ export async function searchBrandChatter(
 ): Promise<ExaSignal[]> {
   return exaSearch({
     query: buildChatterQuery(brand, category, platform, market),
-    numResults: 5,
-    // Brand chatter window is wider — 60 days to catch recent campaigns.
+    numResults: 6,
+    // 60 days captures recent campaigns and community reactions.
     startPublishedDate: daysAgoISO(60),
-    highlightQuery: "consumer sentiment, brand perception, or audience reaction",
+    highlightQuery:
+      "consumer sentiment, audience reaction, brand perception, or community discussion a strategist would find relevant",
+    // Brand newsrooms (PR wire) and Reddit are the open-web sources that
+    // social listening tools miss — include them explicitly here.
+    includeDomains: BRAND_CHATTER_INCLUDE_DOMAINS,
     excludeDomains: NOISE_EXCLUDE_DOMAINS,
   })
 }
@@ -193,10 +220,12 @@ export async function searchCompetitorSignals(
   platform: string,
 ): Promise<ExaSignal[]> {
   return exaSearch({
-    query: `${competitor} ${category.toLowerCase()} advertising campaign creative ${platform} recent`,
+    query: `${competitor} ${category.toLowerCase()} ad campaign creative strategy ${platform} 2025`,
     numResults: 4,
+    // Competitor campaign cycles run 60-90 days — widen window accordingly.
     startPublishedDate: daysAgoISO(90),
-    highlightQuery: "advertising creative, campaign strategy, or marketing angle",
+    highlightQuery:
+      "campaign creative angle, ad strategy, messaging approach, or audience targeting insight",
     includeDomains: COMPETITOR_INCLUDE_DOMAINS,
     excludeDomains: NOISE_EXCLUDE_DOMAINS,
   })
