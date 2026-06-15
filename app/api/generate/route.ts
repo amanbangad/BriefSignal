@@ -1,8 +1,7 @@
 import { generateText, Output } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
-import { gatherSignals, hasExaKey, type ExaSignal } from "@/lib/exa"
-import type { GenerateResponse } from "@/lib/types"
+import { searchCategoryTrends, searchBrandChatter, mergeSignals, hasExaKey, type ExaSignal } from "@/lib/exa"
 
 // Do NOT use the edge runtime with the AI SDK.
 export const maxDuration = 60
@@ -33,37 +32,93 @@ function buildContext(signals: ExaSignal[]): string {
     .join("\n\n")
 }
 
+function sseEvent(data: unknown): Uint8Array {
+  return new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`)
+}
+
 export async function POST(req: Request) {
-  try {
-    const { brand, category, audience } = (await req.json()) as {
-      brand?: string
-      category?: string
-      audience?: string
-    }
+  const { brand, audience } = (await req.json()) as {
+    brand?: string
+    audience?: string
+  }
 
-    if (!brand || !brand.trim()) {
-      return Response.json({ error: "A brand is required." }, { status: 400 })
-    }
+  if (!brand || !brand.trim()) {
+    return Response.json({ error: "A brand is required." }, { status: 400 })
+  }
 
-    const cat = category?.trim() || "general consumer goods"
-    const aud = audience?.trim() || "general consumers"
+  const aud = audience?.trim() || "general consumers"
 
-    // 1. Pull real, recent signals from the open web via Exa (if configured).
-    let signals: ExaSignal[] = []
-    let liveSearch = false
-    if (hasExaKey()) {
+  const stream = new ReadableStream({
+    async start(controller) {
       try {
-        signals = await gatherSignals(brand, cat)
-        liveSearch = signals.length > 0
-      } catch (err) {
-        console.log("[v0] Exa search error:", (err as Error).message)
-      }
-    }
+        let signals: ExaSignal[] = []
+        let liveSearch = false
 
-    const context = buildContext(signals)
+        // Phase 1: Infer category
+        controller.enqueue(
+          sseEvent({ type: "step", phase: 1, label: `Identifying category for ${brand}…` }),
+        )
 
-    // 2. Have OpenAI synthesize the signals into structured brief cards.
-    const system = `You are a creative intelligence analyst for ad agencies building Meta (Instagram/Facebook) campaigns.
+        const { text: rawCategory } = await generateText({
+          model: openai("gpt-4o-mini"),
+          prompt: `What product category does the brand "${brand}" belong to? Reply with 2-5 words only, no punctuation. Examples: "Athletic footwear and apparel", "Beauty and skincare", "Plant-based food and beverage".`,
+          maxOutputTokens: 20,
+        })
+        const category = rawCategory.trim()
+
+        // Emit the inferred category so the frontend can display it
+        controller.enqueue(sseEvent({ type: "category", value: category }))
+
+        if (hasExaKey()) {
+          // Phase 2: category trends
+          controller.enqueue(
+            sseEvent({
+              type: "step",
+              phase: 2,
+              label: `Scanning for trending topics in ${category}…`,
+              count: undefined,
+            }),
+          )
+          const trends = await searchCategoryTrends(category)
+
+          // Phase 3: brand chatter
+          controller.enqueue(
+            sseEvent({
+              type: "step",
+              phase: 3,
+              label: `Scanning brand conversations for ${brand}…`,
+              count: trends.length,
+            }),
+          )
+          const brandChatter = await searchBrandChatter(brand, category)
+
+          signals = mergeSignals(trends, brandChatter)
+          liveSearch = signals.length > 0
+
+          // Phase 4: synthesis
+          controller.enqueue(
+            sseEvent({
+              type: "step",
+              phase: 4,
+              label: `Synthesizing ${signals.length} signals with OpenAI…`,
+              count: signals.length,
+            }),
+          )
+        } else {
+          // No Exa key — skip phases 2 & 3, go straight to synthesis
+          controller.enqueue(
+            sseEvent({
+              type: "step",
+              phase: 4,
+              label: "Generating brief cards from model knowledge…",
+              count: 0,
+            }),
+          )
+        }
+
+        const context = buildContext(signals)
+
+        const system = `You are a creative intelligence analyst for ad agencies building Meta (Instagram/Facebook) campaigns.
 Your job is to turn raw market signals into sharp, actionable creative brief cards.
 ${
   liveSearch
@@ -75,42 +130,37 @@ Rules:
 - "heat" must be exactly one of: hot (trending now), rising (building fast), cooling (losing steam).
 - Make every angle specific to Meta ad formats (Reels, Stories, carousels) and the target audience.`
 
-    const prompt = `Brand: ${brand}
-Category: ${cat}
+        const prompt = `Brand: ${brand}
+Category: ${category}
 Target audience: ${aud}
 
 ${context ? `Live web signals from this month:\n\n${context}` : "Generate three timely brief cards for this brand and category."}`
 
-    const { output } = await generateText({
-      // Uses the OpenAI provider directly with your OPENAI_API_KEY.
-      model: openai("gpt-4o"),
-      system,
-      prompt,
-      output: Output.object({ schema: cardSchema }),
-    })
+        const { output } = await generateText({
+          model: openai("gpt-4o"),
+          system,
+          prompt,
+          output: Output.object({ schema: cardSchema }),
+        })
 
-    const response: GenerateResponse = {
-      cards: output.cards,
-      liveSearch,
-    }
-    return Response.json(response)
-  } catch (err) {
-    const message = (err as Error).message || ""
-    console.log("[v0] generate route error:", message)
+        controller.enqueue(
+          sseEvent({ type: "done", cards: output.cards, liveSearch }),
+        )
+      } catch (err) {
+        const message = (err as Error).message || "Could not generate brief cards. Please try again."
+        console.log("[v0] generate route error:", message)
+        controller.enqueue(sseEvent({ type: "error", message }))
+      } finally {
+        controller.close()
+      }
+    },
+  })
 
-    if (/api key|OPENAI_API_KEY|authentication|401/i.test(message)) {
-      return Response.json(
-        {
-          error:
-            "OpenAI API key is missing or invalid. Add a valid OPENAI_API_KEY to your project, then try again.",
-        },
-        { status: 401 },
-      )
-    }
-
-    return Response.json(
-      { error: "Could not generate brief cards. Please try again." },
-      { status: 500 },
-    )
-  }
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  })
 }
