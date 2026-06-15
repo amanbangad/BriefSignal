@@ -623,80 +623,179 @@ export function BriefSignal() {
             </button>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-4 flex flex-col gap-6">
             {cards.map((card, i) => {
               const heat = HEAT_CONFIG[card.heat] ?? HEAT_CONFIG.rising
               return (
                 <article
                   key={i}
-                  className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5"
+                  className="rounded-xl border border-border bg-card overflow-hidden"
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${heat.className}`}
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-full ${heat.dot}`} />
-                      {heat.label}
-                    </span>
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-
-                  <h3 className="text-balance text-lg font-semibold leading-snug">
-                    {card.trend_name}
-                  </h3>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Why now
-                    </span>
-                    <p className="text-sm leading-relaxed text-card-foreground/90">{card.why_now}</p>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Creative angle
-                    </span>
-                    <p className="text-sm leading-relaxed text-card-foreground/90">
-                      {card.creative_angle}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-border bg-input p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Ad hook
+                  {/* Card header */}
+                  <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {String(i + 1).padStart(2, "0")}
                       </span>
-                      <button
-                        onClick={() => copyHook(card.hook, i)}
-                        className="text-xs font-medium text-primary transition hover:opacity-80"
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${heat.className}`}
                       >
-                        {copied === i ? "Copied" : "Copy"}
-                      </button>
+                        <span className={`h-1.5 w-1.5 rounded-full ${heat.dot}`} />
+                        {heat.label}
+                      </span>
+                      <h3 className="text-balance text-base font-semibold leading-snug">
+                        {card.trend_name}
+                      </h3>
                     </div>
-                    <p className="mt-1.5 text-sm font-medium leading-relaxed text-foreground">
-                      {`\u201c${card.hook}\u201d`}
-                    </p>
-                  </div>
-
-                  <div className="mt-auto flex flex-col gap-1">
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      <span className="font-medium text-foreground/70">Signal</span> {"\u00b7"}{" "}
+                    <div className="flex items-center gap-2 shrink-0">
                       {card.source_url ? (
                         <a
                           href={card.source_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="underline underline-offset-2 hover:text-foreground transition-colors"
+                          className="font-mono text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
                         >
                           {card.source}
                         </a>
                       ) : (
-                        card.source
-                      )}{" "}
-                      {"\u2014"} {card.signal}
-                    </p>
+                        <span className="font-mono text-xs text-muted-foreground">{card.source}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Two-column body */}
+                  <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0">
+
+                    {/* Left column */}
+                    <div className="flex flex-col divide-y divide-border">
+
+                      {/* Why now */}
+                      <div className="px-5 py-4">
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Why now
+                        </span>
+                        <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
+                          {card.why_now}
+                        </p>
+                      </div>
+
+                      {/* Audience tension */}
+                      <div className="px-5 py-4">
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Audience tension
+                        </span>
+                        <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
+                          {card.audience_tension}
+                        </p>
+                      </div>
+
+                      {/* Do / Don't */}
+                      <div className="px-5 py-4">
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Do / Don&apos;t
+                        </span>
+                        <div className="mt-2 flex flex-col gap-2">
+                          <div className="flex gap-2 text-sm">
+                            <span className="shrink-0 font-semibold text-rising">Do</span>
+                            <span className="leading-relaxed text-card-foreground/90">{card.do_dont.do}</span>
+                          </div>
+                          <div className="flex gap-2 text-sm">
+                            <span className="shrink-0 font-semibold text-hot">Don&apos;t</span>
+                            <span className="leading-relaxed text-card-foreground/90">{card.do_dont.dont}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Example brands */}
+                      <div className="px-5 py-4">
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Brands doing it
+                        </span>
+                        <div className="mt-2 flex flex-col gap-2">
+                          {card.example_brands?.map((b, j) => (
+                            <div key={j} className="text-sm leading-relaxed">
+                              <span className="font-medium text-foreground">{b.name}</span>
+                              <span className="text-card-foreground/70"> — {b.approach}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right column */}
+                    <div className="flex flex-col divide-y divide-border">
+
+                      {/* Ad hook */}
+                      <div className="px-5 py-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Ad hook
+                          </span>
+                          <button
+                            onClick={() => copyHook(card.hook, i)}
+                            className="text-xs font-medium text-primary transition hover:opacity-80"
+                          >
+                            {copied === i ? "Copied" : "Copy"}
+                          </button>
+                        </div>
+                        <p className="mt-2 text-base font-semibold leading-snug text-foreground">
+                          {`\u201c${card.hook}\u201d`}
+                        </p>
+                      </div>
+
+                      {/* Copy directions */}
+                      <div className="px-5 py-4">
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Copy directions
+                        </span>
+                        <ul className="mt-2 flex flex-col gap-2">
+                          {card.copy_directions?.map((dir, j) => (
+                            <li key={j} className="flex gap-2 text-sm leading-relaxed text-card-foreground/90">
+                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-muted-foreground/50" />
+                              {dir}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Creative angle */}
+                      <div className="px-5 py-4">
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Creative angle
+                        </span>
+                        <p className="mt-2 text-sm leading-relaxed text-card-foreground/90">
+                          {card.creative_angle}
+                        </p>
+                      </div>
+
+                      {/* Ad formats */}
+                      <div className="px-5 py-4">
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Ad formats
+                        </span>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {card.ad_formats?.map((fmt, j) => (
+                            <span
+                              key={j}
+                              className="rounded-md border border-border bg-input px-2.5 py-1 font-mono text-xs text-foreground/80"
+                            >
+                              {fmt}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Signal */}
+                      <div className="px-5 py-4">
+                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Signal
+                        </span>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          {card.signal}
+                        </p>
+                      </div>
+
+                    </div>
                   </div>
                 </article>
               )
