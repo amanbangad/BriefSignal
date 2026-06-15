@@ -67,15 +67,17 @@ async function exaSearch(query: string, numResults = 5): Promise<ExaSignal[]> {
   }))
 }
 
-// Run the two searches the original product brief described, in parallel.
-export async function gatherSignals(brand: string, category: string): Promise<ExaSignal[]> {
-  const [trends, brandChatter] = await Promise.all([
-    exaSearch(`emerging trends and cultural moments in ${category} this month`, 5),
-    exaSearch(`recent consumer conversations and news about ${brand} ${category}`, 5),
-  ])
+export async function searchCategoryTrends(category: string): Promise<ExaSignal[]> {
+  return exaSearch(`emerging trends and cultural moments in ${category} this month`, 5)
+}
 
+export async function searchBrandChatter(brand: string, category: string): Promise<ExaSignal[]> {
+  return exaSearch(`recent consumer conversations and news about ${brand} ${category}`, 5)
+}
+
+export function mergeSignals(a: ExaSignal[], b: ExaSignal[]): ExaSignal[] {
   const seen = new Set<string>()
-  return [...trends, ...brandChatter].filter((s) => {
+  return [...a, ...b].filter((s) => {
     if (!s.url || seen.has(s.url)) return false
     seen.add(s.url)
     return true
