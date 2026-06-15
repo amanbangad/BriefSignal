@@ -493,6 +493,29 @@ export function BriefSignal() {
       {activeTab === "notes" && <DemoNotes />}
 
       {activeTab === "app" && <>
+
+      {/* Framing: who, problem, Exa's role */}
+      <div className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-3">
+        <div className="flex flex-col gap-1.5 bg-card px-5 py-4">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Who it&apos;s for</span>
+          <p className="text-sm leading-relaxed text-foreground/80">
+            Brand strategists and creative directors who need to brief ad campaigns quickly — typically working across multiple brands, platforms, and weekly sprint cycles.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1.5 bg-card px-5 py-4">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">The problem</span>
+          <p className="text-sm leading-relaxed text-foreground/80">
+            Trend research before a brief is slow, scattered across Slack, trade press, and social tabs. Most briefs are written from memory and gut feel rather than live signals.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1.5 bg-card px-5 py-4">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">How Exa helps</span>
+          <p className="text-sm leading-relaxed text-foreground/80">
+            Exa&apos;s neural search retrieves semantically relevant articles from trade press, platform newsrooms, and analytics blogs in seconds — giving every brief a live evidence base instead of stale assumptions.
+          </p>
+        </div>
+      </div>
+
       {/* How it works */}
       <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
         <span>OpenAI identifies brand category</span>
