@@ -7,6 +7,7 @@ export interface BriefCard {
   creative_angle: string
   hook: string
   source: string
+  source_url: string
   signal: string
 }
 

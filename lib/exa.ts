@@ -52,23 +52,21 @@ const TREND_INCLUDE_DOMAINS = [
   "campaignlive.com",
   "creativebrief.com",
   "morningbrew.com",
-  "theatlantic.com",
-  "nytimes.com",
 ]
 
-// Brand chatter: include Reddit, brand newsrooms, and creator-adjacent press.
-// These are the primary open-web sources that no social listening tool covers.
+// Brand chatter: brand newsrooms, trade press, and creator-adjacent media.
+// reddit.com, businessinsider.com, and forbes.com are blocked on this Exa plan.
 const BRAND_CHATTER_INCLUDE_DOMAINS = [
-  "reddit.com",
   "prnewswire.com",
   "businesswire.com",
-  "businessinsider.com",
-  "forbes.com",
   "techcrunch.com",
   "glossy.co",
   "digiday.com",
   "adweek.com",
   "substack.com",
+  "morningbrew.com",
+  "thedrum.com",
+  "marketingweek.com",
 ]
 
 // Low-signal domains across all search types.

@@ -22,7 +22,8 @@ const cardSchema = z.object({
         why_now: z.string().describe("2 sentences grounded in the search findings"),
         creative_angle: z.string().describe("A specific ad angle native to the given platform"),
         hook: z.string().describe("An ad headline, max 15 words"),
-        source: z.string().describe("The publication or site the signal came from"),
+        source: z.string().describe("The publication or site name the signal came from"),
+        source_url: z.string().describe("The full URL of the source article. Must be a real URL from the search results context. If no URL is available, use an empty string."),
         signal: z.string().describe("1 sentence describing what was found"),
       }),
     )
@@ -45,7 +46,7 @@ function buildContext(signals: ExaSignal[]): string {
   return signals
     .map(
       (s, i) =>
-        `[${i + 1}] ${s.title} (${s.source}${s.published ? `, ${s.published.slice(0, 10)}` : ""})\n${s.snippet}`,
+        `[${i + 1}] ${s.title} (${s.source}${s.published ? `, ${s.published.slice(0, 10)}` : ""})\nURL: ${s.url}\n${s.snippet}`,
     )
     .join("\n\n")
 }
@@ -170,12 +171,12 @@ ${comp ? `- Key competitor: ${comp}` : ""}
 ${
   liveSearch
     ? `Signal source: real-time open-web intelligence gathered this week from trade press, \
-Reddit discussions, brand newsrooms, and creator coverage. \
-Every card MUST be grounded in these findings. Cite the actual source domain. \
-A creative director will fact-check the source — do not invent one.`
+brand newsrooms, and creator coverage. \
+Every card MUST be grounded in these findings. Use the exact URL provided in the search results for source_url. \
+A creative director will click the link — do not invent a URL.`
     : `Signal source: model knowledge of current cultural and category trends (no live search available). \
 Use your knowledge of what is genuinely resonating right now. \
-Use a realistic, plausible publication name for each source — trade press or creator media.`
+Use a realistic publication name for source and an empty string for source_url.`
 }
 
 Output rules:
