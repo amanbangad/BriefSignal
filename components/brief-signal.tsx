@@ -96,12 +96,15 @@ const PLATFORMS = ["Meta", "TikTok", "YouTube Shorts", "LinkedIn", "Pinterest"] 
 const inputCls =
   "rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
 
-const BLOCKED_DOMAINS = [
-  "nytimes.com",
-  "theatlantic.com",
-  "reddit.com",
-  "businessinsider.com",
-  "forbes.com",
+const BLOCKED_DOMAINS: Array<{ domain: string; what: string; why: string }> = [
+  { domain: "nytimes.com", what: "General news & culture", why: "Paywalled — Exa returns 403" },
+  { domain: "theatlantic.com", what: "Long-form culture & ideas", why: "Paywalled — Exa returns 403" },
+  { domain: "reddit.com", what: "Community & consumer sentiment", why: "Blocked by Exa plan — would be valuable for brand chatter" },
+  { domain: "businessinsider.com", what: "Business & marketing news", why: "Paywalled — Exa returns 403" },
+  { domain: "forbes.com", what: "Business & brand coverage", why: "Paywalled — Exa returns 403" },
+  { domain: "creators.instagram.com", what: "Weekly Instagram Reels trend reports", why: "Entire domain blocked by Exa — the official trend report URL pattern (trend-report-MMDDYY) exists but is inaccessible. about.fb.com is used as a proxy instead." },
+  { domain: "about.instagram.com", what: "Instagram product & feature news", why: "Blocked by Exa plan" },
+  { domain: "business.instagram.com", what: "Instagram advertiser guidance", why: "Blocked by Exa plan" },
 ]
 
 const WORKING_DOMAINS = [
@@ -274,17 +277,26 @@ function DemoNotes() {
           Blocked domains (Exa free plan)
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The following domains return 403 on the current Exa plan and have been removed from all
-          include lists. Adding them causes the entire search to fail.
+          These domains have been tested and confirmed inaccessible on the current Exa plan.
+          Including them in a search causes the entire request to fail, so they are excluded from
+          all include lists.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {BLOCKED_DOMAINS.map((d) => (
-            <span
-              key={d}
-              className="rounded-md border border-hot/30 bg-hot/10 px-2.5 py-1 font-mono text-xs text-hot"
+        <div className="mt-4 overflow-hidden rounded-lg border border-border">
+          {/* Header */}
+          <div className="grid grid-cols-[180px_1fr_1fr] border-b border-border bg-input px-4 py-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Domain</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What it covers</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why blocked</span>
+          </div>
+          {BLOCKED_DOMAINS.map((d, i) => (
+            <div
+              key={d.domain}
+              className={`grid grid-cols-[180px_1fr_1fr] gap-x-4 px-4 py-3 ${i < BLOCKED_DOMAINS.length - 1 ? "border-b border-border" : ""}`}
             >
-              {d}
-            </span>
+              <span className="font-mono text-xs text-hot">{d.domain}</span>
+              <span className="text-xs leading-relaxed text-card-foreground/80">{d.what}</span>
+              <span className="text-xs leading-relaxed text-muted-foreground">{d.why}</span>
+            </div>
           ))}
         </div>
 
