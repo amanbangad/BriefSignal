@@ -11,8 +11,7 @@ interface Step {
 
 const DEFAULT_STEPS: Step[] = [
   { label: "Identifying category…", status: "pending" },
-  { label: "Scanning for platform trends…", status: "pending" },
-  { label: "Scanning brand conversations…", status: "pending" },
+  { label: "Scanning trends, chatter & social signals…", status: "pending" },
   { label: "Synthesizing brief cards…", status: "pending" },
 ]
 
@@ -96,6 +95,7 @@ const BLOCKED_DOMAINS = [
 ]
 
 const WORKING_DOMAINS = [
+  // Trade press & editorial
   "adweek.com",
   "digiday.com",
   "thedrum.com",
@@ -111,11 +111,24 @@ const WORKING_DOMAINS = [
   "emarketer.com",
   "creativebrief.com",
   "morningbrew.com",
+  // Brand newsrooms & PR
   "prnewswire.com",
   "businesswire.com",
   "techcrunch.com",
   "substack.com",
   "mediapost.com",
+  // Social proxy domains (platform newsrooms + creator press)
+  "newsroom.tiktok.com",
+  "blog.youtube.com",
+  "later.com",
+  "tubefilter.com",
+  "sproutsocial.com",
+  "socialmediaexaminer.com",
+  "hootsuite.com",
+  "buffer.com",
+  "creatoriq.com",
+  "influencermarketinghub.com",
+  "socialinsider.io",
 ]
 
 function DemoNotes() {
@@ -152,6 +165,16 @@ function DemoNotes() {
               within 7 days with active language. Rising = within 30 days or building language.
               Cooling = older than 30 days or plateau/decline language. The first sentence of
               why_now is required to cite the article date and what was reported.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-0.5 shrink-0 text-rising">&#10003;</span>
+            <span>
+              <span className="font-medium text-foreground">Social signal proxy</span> — a third
+              parallel search targets platform newsrooms (newsroom.tiktok.com, blog.youtube.com),
+              creator economy press (tubefilter.com, creatoriq.com), and social analytics blogs
+              (sproutsocial.com, later.com) to surface what is actually trending on the selected
+              platform. Runs in parallel with the other two searches, adding no extra latency.
             </span>
           </li>
           <li className="flex gap-2">
@@ -198,9 +221,12 @@ function DemoNotes() {
           <li className="flex gap-2">
             <span className="mt-0.5 shrink-0 text-hot">&#10007;</span>
             <span>
-              <span className="font-medium text-foreground">No social media data</span> — TikTok,
-              Instagram, X, and YouTube are not indexed by Exa. Platform selection shapes query
-              framing and synthesis format, but does not pull actual in-platform content.
+              <span className="font-medium text-foreground">No direct social platform indexing</span>{" "}
+              — TikTok, Instagram, X, and YouTube are not crawlable by Exa. Social signals are
+              proxied via platform newsrooms (newsroom.tiktok.com, blog.youtube.com), creator
+              economy press (tubefilter.com, creatoriq.com), and social analytics blogs
+              (sproutsocial.com, later.com, hootsuite.com). These cover what is trending on each
+              platform but with a reporting lag of 1–7 days.
             </span>
           </li>
           <li className="flex gap-2">

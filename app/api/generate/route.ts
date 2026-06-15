@@ -5,6 +5,7 @@ import {
   searchCategoryTrends,
   searchBrandChatter,
   searchCompetitorSignals,
+  searchSocialSignals,
   mergeSignals,
   hasExaKey,
   type ExaSignal,
@@ -97,35 +98,28 @@ export async function POST(req: Request) {
         controller.enqueue(sseEvent({ type: "category", value: category }))
 
         if (hasExaKey()) {
-          // Phase 2: category trends (platform + market aware)
+          // Phase 2: run category trends + brand chatter + social proxy in parallel.
           controller.enqueue(
             sseEvent({
               type: "step",
               phase: 2,
-              label: `Scanning ${platform} trends in ${category}${mkt ? ` · ${mkt}` : ""}…`,
+              label: `Scanning ${platform} trends, brand chatter & social signals…`,
             }),
           )
-          const trends = await searchCategoryTrends(category, platform, mkt)
-
-          // Phase 3: brand chatter
-          controller.enqueue(
-            sseEvent({
-              type: "step",
-              phase: 3,
-              label: `Scanning brand conversations for ${brand}…`,
-              count: trends.length,
-            }),
-          )
-          const brandChatter = await searchBrandChatter(brand, category, platform, mkt)
-          signals = mergeSignals(trends, brandChatter)
+          const [trends, brandChatter, socialSignals] = await Promise.all([
+            searchCategoryTrends(category, platform, mkt),
+            searchBrandChatter(brand, category, platform, mkt),
+            searchSocialSignals(category, platform, mkt),
+          ])
+          signals = mergeSignals(mergeSignals(trends, brandChatter), socialSignals)
           liveSearch = signals.length > 0
 
-          // Phase 4 (conditional): competitor signals
+          // Phase 3: competitor signals (conditional)
           if (comp) {
             controller.enqueue(
               sseEvent({
                 type: "step",
-                phase: 4,
+                phase: 3,
                 label: `Scanning ${comp} creative signals…`,
                 count: signals.length,
               }),
@@ -134,8 +128,8 @@ export async function POST(req: Request) {
             signals = mergeSignals(signals, competitorSignals)
           }
 
-          // Final synthesis phase (phase 4 or 5 depending on competitor)
-          const synthesisPhase = comp ? 5 : 4
+          // Final synthesis phase (3 or 4 depending on competitor)
+          const synthesisPhase = comp ? 4 : 3
           controller.enqueue(
             sseEvent({
               type: "step",
