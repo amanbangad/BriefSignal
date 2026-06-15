@@ -37,9 +37,8 @@ function sseEvent(data: unknown): Uint8Array {
 }
 
 export async function POST(req: Request) {
-  const { brand, category, audience } = (await req.json()) as {
+  const { brand, audience } = (await req.json()) as {
     brand?: string
-    category?: string
     audience?: string
   }
 
@@ -47,7 +46,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "A brand is required." }, { status: 400 })
   }
 
-  const cat = category?.trim() || "general consumer goods"
   const aud = audience?.trim() || "general consumers"
 
   const stream = new ReadableStream({
@@ -56,46 +54,62 @@ export async function POST(req: Request) {
         let signals: ExaSignal[] = []
         let liveSearch = false
 
-        if (hasExaKey()) {
-          // Phase 1: category trends
-          controller.enqueue(
-            sseEvent({
-              type: "step",
-              phase: 1,
-              label: `Scanning for trending topics in ${cat}…`,
-            }),
-          )
-          const trends = await searchCategoryTrends(cat)
+        // Phase 1: Infer category
+        controller.enqueue(
+          sseEvent({ type: "step", phase: 1, label: `Identifying category for ${brand}…` }),
+        )
 
-          // Phase 2: brand chatter
+        const { text: rawCategory } = await generateText({
+          model: openai("gpt-4o-mini"),
+          prompt: `What product category does the brand "${brand}" belong to? Reply with 2-5 words only, no punctuation. Examples: "Athletic footwear and apparel", "Beauty and skincare", "Plant-based food and beverage".`,
+          maxOutputTokens: 20,
+        })
+        const category = rawCategory.trim()
+
+        // Emit the inferred category so the frontend can display it
+        controller.enqueue(sseEvent({ type: "category", value: category }))
+
+        if (hasExaKey()) {
+          // Phase 2: category trends
           controller.enqueue(
             sseEvent({
               type: "step",
               phase: 2,
-              label: `Scanning brand conversations for ${brand}…`,
-              count: trends.length,
+              label: `Scanning for trending topics in ${category}…`,
+              count: undefined,
             }),
           )
-          const brandChatter = await searchBrandChatter(brand, cat)
+          const trends = await searchCategoryTrends(category)
 
-          signals = mergeSignals(trends, brandChatter)
-          liveSearch = signals.length > 0
-
-          // Phase 3: synthesis
+          // Phase 3: brand chatter
           controller.enqueue(
             sseEvent({
               type: "step",
               phase: 3,
+              label: `Scanning brand conversations for ${brand}…`,
+              count: trends.length,
+            }),
+          )
+          const brandChatter = await searchBrandChatter(brand, category)
+
+          signals = mergeSignals(trends, brandChatter)
+          liveSearch = signals.length > 0
+
+          // Phase 4: synthesis
+          controller.enqueue(
+            sseEvent({
+              type: "step",
+              phase: 4,
               label: `Synthesizing ${signals.length} signals with OpenAI…`,
               count: signals.length,
             }),
           )
         } else {
-          // No Exa key — skip to synthesis directly
+          // No Exa key — skip phases 2 & 3, go straight to synthesis
           controller.enqueue(
             sseEvent({
               type: "step",
-              phase: 3,
+              phase: 4,
               label: "Generating brief cards from model knowledge…",
               count: 0,
             }),
@@ -117,7 +131,7 @@ Rules:
 - Make every angle specific to Meta ad formats (Reels, Stories, carousels) and the target audience.`
 
         const prompt = `Brand: ${brand}
-Category: ${cat}
+Category: ${category}
 Target audience: ${aud}
 
 ${context ? `Live web signals from this month:\n\n${context}` : "Generate three timely brief cards for this brand and category."}`

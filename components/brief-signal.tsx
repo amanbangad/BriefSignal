@@ -3,17 +3,6 @@
 import { useState } from "react"
 import type { BriefCard, Heat } from "@/lib/types"
 
-const CATEGORIES = [
-  "Beauty & Skincare",
-  "CPG & FMCG",
-  "Fashion & Apparel",
-  "Food & Beverage",
-  "Health & Wellness",
-  "Sports & Fitness",
-  "Entertainment & Media",
-  "Home & Lifestyle",
-]
-
 interface Step {
   label: string
   status: "pending" | "active" | "done"
@@ -21,9 +10,10 @@ interface Step {
 }
 
 const DEFAULT_STEPS: Step[] = [
-  { label: "Scanning for trending topics…", status: "pending" },
+  { label: "Identifying category…", status: "pending" },
+  { label: "Scanning for category trends…", status: "pending" },
   { label: "Scanning brand conversations…", status: "pending" },
-  { label: "Synthesizing signals with OpenAI…", status: "pending" },
+  { label: "Synthesizing brief cards…", status: "pending" },
 ]
 
 function SearchProgress({ steps }: { steps: Step[] }) {
@@ -31,7 +21,6 @@ function SearchProgress({ steps }: { steps: Step[] }) {
     <div className="mt-6 flex flex-col gap-3">
       {steps.map((step, i) => (
         <div key={i} className="flex items-start gap-3">
-          {/* Status indicator */}
           <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
             {step.status === "done" ? (
               <svg className="h-4 w-4 text-rising" viewBox="0 0 16 16" fill="none">
@@ -46,7 +35,6 @@ function SearchProgress({ steps }: { steps: Step[] }) {
               </span>
             )}
           </div>
-          {/* Label + count */}
           <div className="flex flex-col gap-0.5">
             <span
               className={`text-sm ${
@@ -89,10 +77,10 @@ const HEAT_CONFIG: Record<Heat, { label: string; className: string; dot: string 
 
 export function BriefSignal() {
   const [brand, setBrand] = useState("")
-  const [category, setCategory] = useState(CATEGORIES[0])
   const [audience, setAudience] = useState("")
   const [loading, setLoading] = useState(false)
   const [steps, setSteps] = useState<Step[]>(DEFAULT_STEPS)
+  const [inferredCategory, setInferredCategory] = useState<string | null>(null)
   const [cards, setCards] = useState<BriefCard[]>([])
   const [liveSearch, setLiveSearch] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -111,13 +99,14 @@ export function BriefSignal() {
     setLoading(true)
     setCards([])
     setError(null)
+    setInferredCategory(null)
     setSteps(DEFAULT_STEPS)
 
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brand, category, audience }),
+        body: JSON.stringify({ brand, audience }),
       })
 
       if (!res.ok || !res.body) {
@@ -142,7 +131,9 @@ export function BriefSignal() {
           if (!line.startsWith("data: ")) continue
           const payload = JSON.parse(line.slice(6))
 
-          if (payload.type === "step") {
+          if (payload.type === "category") {
+            setInferredCategory(payload.value)
+          } else if (payload.type === "step") {
             const phase: number = payload.phase
             setSteps((prev) =>
               prev.map((s, i) => {
@@ -171,6 +162,7 @@ export function BriefSignal() {
   const reset = () => {
     setCards([])
     setError(null)
+    setInferredCategory(null)
   }
 
   const canGenerate = !loading && brand.trim().length > 0
@@ -192,6 +184,8 @@ export function BriefSignal() {
 
       {/* How it works */}
       <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
+        <span>OpenAI identifies brand category</span>
+        <span className="text-primary">{"\u2192"}</span>
         <span>Exa scans Reddit, trade press, brand newsrooms</span>
         <span className="text-primary">{"\u2192"}</span>
         <span>OpenAI synthesizes trend signals</span>
@@ -201,30 +195,21 @@ export function BriefSignal() {
 
       {/* Form */}
       <div className="mt-8 rounded-xl border border-border bg-card p-5 md:p-6">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Brand</span>
             <input
               className="rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
               placeholder="Nike, Glossier, Oatly..."
               value={brand}
-              onChange={(e) => setBrand(e.target.value)}
+              onChange={(e) => { setBrand(e.target.value); setInferredCategory(null) }}
               onKeyDown={(e) => e.key === "Enter" && generate()}
             />
-          </label>
-          <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Category</span>
-            <select
-              className="rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            {inferredCategory && (
+              <span className="text-xs text-muted-foreground">
+                {"\u21b3"} {inferredCategory}
+              </span>
+            )}
           </label>
           <label className="flex flex-col gap-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Target audience</span>
@@ -355,7 +340,7 @@ export function BriefSignal() {
 
       <footer className="mt-12 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5 text-xs text-muted-foreground">
         <span>BriefSignal</span>
-        <span>Exa real-time web search {"\u00b7"} OpenAI synthesis</span>
+        <span>OpenAI category inference {"\u00b7"} Exa web search {"\u00b7"} OpenAI synthesis</span>
       </footer>
     </div>
   )
