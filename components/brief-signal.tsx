@@ -130,6 +130,7 @@ const WORKING_DOMAINS = [
   // Social proxy domains (platform newsrooms + creator press)
   "newsroom.tiktok.com",
   "blog.youtube.com",
+  "about.fb.com",
   "later.com",
   "tubefilter.com",
   "sproutsocial.com",
@@ -233,10 +234,12 @@ function DemoNotes() {
             <span>
               <span className="font-medium text-foreground">No direct social platform indexing</span>{" "}
               — TikTok, Instagram, X, and YouTube are not crawlable by Exa. Social signals are
-              proxied via platform newsrooms (newsroom.tiktok.com, blog.youtube.com), creator
-              economy press (tubefilter.com, creatoriq.com), and social analytics blogs
-              (sproutsocial.com, later.com, hootsuite.com). These cover what is trending on each
-              platform but with a reporting lag of 1–7 days.
+              proxied via platform newsrooms (newsroom.tiktok.com, blog.youtube.com, about.fb.com
+              for Instagram/Meta), creator economy press (tubefilter.com, creatoriq.com), and
+              social analytics blogs (sproutsocial.com, later.com, hootsuite.com). These cover what
+              is trending on each platform but with a reporting lag of 1–7 days.
+              about.instagram.com, business.instagram.com, and creators.instagram.com are all
+              blocked on this Exa plan.
             </span>
           </li>
           <li className="flex gap-2">
