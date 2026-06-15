@@ -80,15 +80,15 @@ Target audience: ${aud}
 
 ${context ? `Live web signals from this month:\n\n${context}` : "Generate three timely brief cards for this brand and category."}`
 
-    const { experimental_output } = await generateText({
+    const { output } = await generateText({
       model: "anthropic/claude-sonnet-4.6",
       system,
       prompt,
-      experimental_output: Output.object({ schema: cardSchema }),
+      output: Output.object({ schema: cardSchema }),
     })
 
     const response: GenerateResponse = {
-      cards: experimental_output.cards,
+      cards: output.cards,
       liveSearch,
     }
     return Response.json(response)
