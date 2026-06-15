@@ -7,6 +7,7 @@ import {
   searchCompetitorSignals,
   searchSocialSignals,
   mergeSignals,
+  filterBrandOwnCampaigns,
   hasExaKey,
   type ExaSignal,
 } from "@/lib/exa"
@@ -120,11 +121,13 @@ export async function POST(req: Request) {
             }),
           )
           const [trends, brandChatter, socialSignals] = await Promise.all([
-            searchCategoryTrends(category, platform, mkt),
+            searchCategoryTrends(category, platform, mkt, brand),
             searchBrandChatter(brand, category, platform, mkt),
-            searchSocialSignals(category, platform, mkt),
+            searchSocialSignals(category, platform, mkt, brand),
           ])
-          signals = mergeSignals(mergeSignals(trends, brandChatter), socialSignals)
+          const merged = mergeSignals(mergeSignals(trends, brandChatter), socialSignals)
+          // Strip articles that are primarily about the brand's own campaigns/launches.
+          signals = filterBrandOwnCampaigns(merged, brand)
           liveSearch = signals.length > 0
 
           // Phase 3: competitor signals (conditional)

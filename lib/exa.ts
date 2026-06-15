@@ -204,17 +204,19 @@ export async function searchCategoryTrends(
   category: string,
   platform?: string,
   market?: string,
+  brand?: string,
 ): Promise<ExaSignal[]> {
   return exaSearch({
     query: buildTrendsQuery(category, platform, market),
     numResults: 7,
-    // Trend windows are short (Publicis: ~5 days). 21 days captures the editorial
-    // reaction wave that appears after a trend peaks on social.
     startPublishedDate: daysAgoISO(21),
     highlightQuery:
       "creative trend, cultural moment, consumer behavior shift, or viral content pattern relevant to advertisers",
     includeDomains: TREND_INCLUDE_DOMAINS,
-    excludeDomains: NOISE_EXCLUDE_DOMAINS,
+    excludeDomains: [
+      ...NOISE_EXCLUDE_DOMAINS,
+      ...(brand ? brandOwnedDomains(brand) : []),
+    ],
   })
 }
 
@@ -274,16 +276,19 @@ export async function searchSocialSignals(
   category: string,
   platform: string,
   market?: string,
+  brand?: string,
 ): Promise<ExaSignal[]> {
   return exaSearch({
     query: buildSocialProxyQuery(category, platform, market),
     numResults: 5,
-    // Social trend roundups appear quickly — 14 days keeps signals fresh.
     startPublishedDate: daysAgoISO(14),
     highlightQuery:
       "trending content format, viral creator pattern, or platform-native behavior relevant to brand advertisers",
     includeDomains: SOCIAL_PROXY_DOMAINS,
-    excludeDomains: NOISE_EXCLUDE_DOMAINS,
+    excludeDomains: [
+      ...NOISE_EXCLUDE_DOMAINS,
+      ...(brand ? brandOwnedDomains(brand) : []),
+    ],
   })
 }
 
@@ -292,6 +297,30 @@ export function mergeSignals(a: ExaSignal[], b: ExaSignal[]): ExaSignal[] {
   return [...a, ...b].filter((s) => {
     if (!s.url || seen.has(s.url)) return false
     seen.add(s.url)
+    return true
+  })
+}
+
+/**
+ * Remove signals whose title is primarily about the brand's own campaign/activation.
+ * Keeps signals where the brand is mentioned in passing but the article is about a
+ * broader trend, consumer reaction, or category movement.
+ */
+export function filterBrandOwnCampaigns(signals: ExaSignal[], brand: string): ExaSignal[] {
+  if (!brand.trim()) return signals
+  const b = brand.toLowerCase()
+  // Patterns that indicate the article is a brand-authored or campaign-recap piece.
+  const ownCampaignPatterns = [
+    new RegExp(`^${b}['s]* (launch|unveil|reveal|debut|release|campaign|activat|partner|collaborat|drop|introduc)`, "i"),
+    new RegExp(`^${b}['s]* (world cup|sponsorship|ad|spot|commercial|film|film|video)`, "i"),
+    new RegExp(`^${b} and `, "i"),  // "Nike and McDonald's…" — brand-led collab announcement
+  ]
+  return signals.filter((s) => {
+    const title = s.title.toLowerCase()
+    // If the title starts with the brand name AND matches a campaign-recap pattern, drop it.
+    if (title.startsWith(b) && ownCampaignPatterns.some((p) => p.test(title))) {
+      return false
+    }
     return true
   })
 }
