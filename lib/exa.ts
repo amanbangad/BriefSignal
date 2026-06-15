@@ -80,10 +80,12 @@ const NOISE_EXCLUDE_DOMAINS = [
 // analytics blogs that publish weekly trend roundups. These are the closest
 // open-web proxy for what is actually trending on TikTok, Instagram, YouTube, and X
 // since Exa cannot index those platforms directly.
-// creators.instagram.com is blocked on this Exa plan.
+// Blocked on this Exa plan: creators.instagram.com, about.instagram.com, business.instagram.com
+// about.fb.com is the best available Instagram/Meta newsroom proxy (verified 200, fresh 2025 content).
 const SOCIAL_PROXY_DOMAINS = [
   "newsroom.tiktok.com",
   "blog.youtube.com",
+  "about.fb.com",
   "later.com",
   "tubefilter.com",
   "sproutsocial.com",

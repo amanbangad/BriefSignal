@@ -45,16 +45,6 @@ const cardSchema = z.object({
     .length(3),
 })
 
-const OBJECTIVE_GUIDANCE: Record<string, string> = {
-  Awareness:
-    "prioritize emotional resonance and brand recall over CTA. Hook should stop the scroll.",
-  Consideration:
-    "prioritize education and social proof. Hook should create curiosity or answer a question.",
-  Conversion:
-    "prioritize urgency and direct response. Hook should create immediate desire to act.",
-  Retention:
-    "prioritize community and loyalty. Hook should make existing customers feel seen.",
-}
 
 function buildContext(signals: ExaSignal[]): string {
   if (signals.length === 0) return ""
@@ -75,12 +65,10 @@ export async function POST(req: Request) {
     brand?: string
     audience?: string
     platform?: string
-    objective?: string
     competitor?: string
-    market?: string
   }
 
-  const { brand, audience, platform = "Meta", objective = "Awareness", competitor = "", market = "" } = body
+  const { brand, audience, platform = "Meta", competitor = "" } = body
 
   if (!brand || !brand.trim()) {
     return Response.json({ error: "A brand is required." }, { status: 400 })
@@ -88,8 +76,6 @@ export async function POST(req: Request) {
 
   const aud = audience?.trim() || "general consumers"
   const comp = competitor.trim()
-  const mkt = market.trim()
-  const objectiveGuidance = OBJECTIVE_GUIDANCE[objective] ?? OBJECTIVE_GUIDANCE.Awareness
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -121,9 +107,9 @@ export async function POST(req: Request) {
             }),
           )
           const [trends, brandChatter, socialSignals] = await Promise.all([
-            searchCategoryTrends(category, platform, mkt, brand),
-            searchBrandChatter(brand, category, platform, mkt),
-            searchSocialSignals(category, platform, mkt, brand),
+            searchCategoryTrends(category, platform, undefined, brand),
+            searchBrandChatter(brand, category, platform),
+            searchSocialSignals(category, platform, undefined, brand),
           ])
           const merged = mergeSignals(mergeSignals(trends, brandChatter), socialSignals)
           // Strip articles that are primarily about the brand's own campaigns/launches.
@@ -178,8 +164,6 @@ Today's date: ${today}
 
 Context:
 - Platform: ${platform}
-- Campaign objective: ${objective}
-- Market: ${mkt || "Global"}
 ${comp ? `- Key competitor: ${comp}` : ""}
 
 ${
@@ -217,7 +201,6 @@ Output rules:
 - example_brands: 1-2 real brands with a one-sentence description of their execution. Must be verifiable — do not invent examples.
 - copy_directions: 2-3 alternative headlines or copy angles for the same signal in different tones (e.g. bold/provocative, warm/relatable, witty/ironic).
 - Vague why_now observations ("consumers want authenticity") are not acceptable.
-- Objective is ${objective}: ${objectiveGuidance}
 ${comp ? `- One card must contain a direct competitive angle against ${comp}. Name the tension clearly.` : ""}
 
 SIGNAL QUALITY GATE — apply this before writing any card:
@@ -242,9 +225,7 @@ If after filtering there are fewer than 3 usable sources, synthesise the remaini
 Category: ${category}
 Target audience: ${aud}
 Platform: ${platform}
-Objective: ${objective}
-  Market: ${mkt || "Global"}
-  ${comp ? `Competitor: ${comp}` : ""}
+${comp ? `Competitor: ${comp}` : ""}
 
 ${context ? `Live web signals from this month:\n\n${context}` : "Generate three timely brief cards for this brand and category."}`
 
@@ -261,9 +242,7 @@ ${context ? `Live web signals from this month:\n\n${context}` : "Generate three 
             cards: output.cards,
             liveSearch,
             platform,
-            objective,
             competitor: comp,
-            market: mkt,
           }),
         )
       } catch (err) {

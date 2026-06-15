@@ -92,17 +92,19 @@ const HEAT_CONFIG: Record<Heat, { label: string; className: string; dot: string 
 }
 
 const PLATFORMS = ["Meta", "TikTok", "YouTube Shorts", "LinkedIn", "Pinterest"] as const
-const OBJECTIVES = ["Awareness", "Consideration", "Conversion", "Retention"] as const
 
 const inputCls =
   "rounded-lg border border-border bg-input px-3 py-2.5 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/40"
 
-const BLOCKED_DOMAINS = [
-  "nytimes.com",
-  "theatlantic.com",
-  "reddit.com",
-  "businessinsider.com",
-  "forbes.com",
+const BLOCKED_DOMAINS: Array<{ domain: string; what: string; why: string }> = [
+  { domain: "nytimes.com", what: "General news & culture", why: "Paywalled — Exa returns 403" },
+  { domain: "theatlantic.com", what: "Long-form culture & ideas", why: "Paywalled — Exa returns 403" },
+  { domain: "reddit.com", what: "Community & consumer sentiment", why: "Blocked by Exa plan — would be valuable for brand chatter" },
+  { domain: "businessinsider.com", what: "Business & marketing news", why: "Paywalled — Exa returns 403" },
+  { domain: "forbes.com", what: "Business & brand coverage", why: "Paywalled — Exa returns 403" },
+  { domain: "creators.instagram.com", what: "Weekly Instagram Reels trend reports", why: "Entire domain blocked by Exa — the official trend report URL pattern (trend-report-MMDDYY) exists but is inaccessible. about.fb.com is used as a proxy instead." },
+  { domain: "about.instagram.com", what: "Instagram product & feature news", why: "Blocked by Exa plan" },
+  { domain: "business.instagram.com", what: "Instagram advertiser guidance", why: "Blocked by Exa plan" },
 ]
 
 const WORKING_DOMAINS = [
@@ -131,6 +133,7 @@ const WORKING_DOMAINS = [
   // Social proxy domains (platform newsrooms + creator press)
   "newsroom.tiktok.com",
   "blog.youtube.com",
+  "about.fb.com",
   "later.com",
   "tubefilter.com",
   "sproutsocial.com",
@@ -234,10 +237,12 @@ function DemoNotes() {
             <span>
               <span className="font-medium text-foreground">No direct social platform indexing</span>{" "}
               — TikTok, Instagram, X, and YouTube are not crawlable by Exa. Social signals are
-              proxied via platform newsrooms (newsroom.tiktok.com, blog.youtube.com), creator
-              economy press (tubefilter.com, creatoriq.com), and social analytics blogs
-              (sproutsocial.com, later.com, hootsuite.com). These cover what is trending on each
-              platform but with a reporting lag of 1–7 days.
+              proxied via platform newsrooms (newsroom.tiktok.com, blog.youtube.com, about.fb.com
+              for Instagram/Meta), creator economy press (tubefilter.com, creatoriq.com), and
+              social analytics blogs (sproutsocial.com, later.com, hootsuite.com). These cover what
+              is trending on each platform but with a reporting lag of 1–7 days.
+              about.instagram.com, business.instagram.com, and creators.instagram.com are all
+              blocked on this Exa plan.
             </span>
           </li>
           <li className="flex gap-2">
@@ -272,17 +277,26 @@ function DemoNotes() {
           Blocked domains (Exa free plan)
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The following domains return 403 on the current Exa plan and have been removed from all
-          include lists. Adding them causes the entire search to fail.
+          These domains have been tested and confirmed inaccessible on the current Exa plan.
+          Including them in a search causes the entire request to fail, so they are excluded from
+          all include lists.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {BLOCKED_DOMAINS.map((d) => (
-            <span
-              key={d}
-              className="rounded-md border border-hot/30 bg-hot/10 px-2.5 py-1 font-mono text-xs text-hot"
+        <div className="mt-4 overflow-hidden rounded-lg border border-border">
+          {/* Header */}
+          <div className="grid grid-cols-[180px_1fr_1fr] border-b border-border bg-input px-4 py-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Domain</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What it covers</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why blocked</span>
+          </div>
+          {BLOCKED_DOMAINS.map((d, i) => (
+            <div
+              key={d.domain}
+              className={`grid grid-cols-[180px_1fr_1fr] gap-x-4 px-4 py-3 ${i < BLOCKED_DOMAINS.length - 1 ? "border-b border-border" : ""}`}
             >
-              {d}
-            </span>
+              <span className="font-mono text-xs text-hot">{d.domain}</span>
+              <span className="text-xs leading-relaxed text-card-foreground/80">{d.what}</span>
+              <span className="text-xs leading-relaxed text-muted-foreground">{d.why}</span>
+            </div>
           ))}
         </div>
 
@@ -311,7 +325,6 @@ function DemoNotes() {
 interface ResultMeta {
   inferredCategory: string
   platform: string
-  objective: string
   liveSearch: boolean
 }
 
@@ -319,9 +332,7 @@ export function BriefSignal() {
   const [brand, setBrand] = useState("")
   const [audience, setAudience] = useState("")
   const [platform, setPlatform] = useState<string>("Meta")
-  const [objective, setObjective] = useState<string>("Awareness")
   const [competitor, setCompetitor] = useState("")
-  const [market, setMarket] = useState("")
 
   const [activeTab, setActiveTab] = useState<"app" | "notes">("app")
   const [loading, setLoading] = useState(false)
@@ -353,7 +364,7 @@ export function BriefSignal() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brand, audience, platform, objective, competitor, market }),
+        body: JSON.stringify({ brand, audience, platform, competitor }),
       })
 
       if (!res.ok || !res.body) {
@@ -400,7 +411,6 @@ export function BriefSignal() {
             setResultMeta({
               inferredCategory: inferredCategory ?? "",
               platform: payload.platform,
-              objective: payload.objective,
               liveSearch: payload.liveSearch,
             })
             setGeneratedAt(new Date().toLocaleTimeString())
@@ -530,22 +540,6 @@ export function BriefSignal() {
 
           <label className="flex flex-col gap-2">
             <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Objective
-            </span>
-            <select
-              className={inputCls}
-              value={objective}
-              onChange={(e) => setObjective(e.target.value)}
-            >
-              {OBJECTIVES.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-          </label>
-
-          {/* Row 3: Competitor + Market */}
-          <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Competitor{" "}
               <span className="normal-case font-normal text-muted-foreground/60">(optional)</span>
             </span>
@@ -554,20 +548,6 @@ export function BriefSignal() {
               placeholder="e.g. Adidas, CeraVe..."
               value={competitor}
               onChange={(e) => setCompetitor(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && generate()}
-            />
-          </label>
-
-          <label className="flex flex-col gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Market{" "}
-              <span className="normal-case font-normal text-muted-foreground/60">(optional)</span>
-            </span>
-            <input
-              className={inputCls}
-              placeholder="e.g. US, UK, Southeast Asia..."
-              value={market}
-              onChange={(e) => setMarket(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && generate()}
             />
           </label>
@@ -615,14 +595,7 @@ export function BriefSignal() {
                   </span>
                 </>
               )}
-              {resultMeta?.objective && (
-                <>
-                  <span>{"\u00b7"}</span>
-                  <span className="rounded-md border border-border bg-card px-2 py-0.5 text-xs">
-                    {resultMeta.objective}
-                  </span>
-                </>
-              )}
+
               <span>{"\u00b7"}</span>
               <span>{resultMeta?.liveSearch ? "live Exa search" : "model knowledge"}</span>
             </div>
